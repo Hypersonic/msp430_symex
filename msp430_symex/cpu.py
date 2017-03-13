@@ -927,28 +927,20 @@ class CPU:
         new_states = set_states + unset_states
 
 
-        # C bit (XXX: really not convinced this implementation is correct...)
-        # TODO: fix this implementation
-        """
+        # C bit
+        # basically we check if the highest bit transitioned from a 1 to a 0
+        highest_bit = lambda x: Extract(15, 15, x)
+        did_overflow = And(highest_bit(dest_val) == 1, \
+                           highest_bit(dest_val - source_val) == 0)
         set_states = [x for x in new_states] # C bit set
         unset_states = [x.clone() for x in new_states] # C bit cleared
         for st in set_states:
-            # add 1's complement of source + 1 to dest, extended by 1 bit to
-            # get MSB overflow...
-            # It's messy, but it works :/
-            sv_ext = Concat(BitVecVal(0, 1), ~(source_val)+1)
-            dv_ext = Concat(BitVecVal(0, 1), dest_val)
-            res_ext = dv_ext + sv_ext
-            st.path.add(Extract(1, 0, res_ext) == 0b1)
+            st.path.add(did_overflow)
             st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
         for st in unset_states:
-            sv_ext = Concat(BitVecVal(0, 1), ~(source_val)+1)
-            dv_ext = Concat(BitVecVal(0, 1), dest_val)
-            res_ext = dv_ext + sv_ext
-            st.path.add(Extract(1, 0, res_ext) == 0b0)
+            st.path.add(Not(did_overflow))
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
         new_states = set_states + unset_states
-        """
         
         # V bit
         set_states = [x for x in new_states] # V bit set
