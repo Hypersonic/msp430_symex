@@ -18,6 +18,7 @@ class TestCallDecode(unittest.TestCase):
         self.assertEqual(instruction.addressing_mode, AddressingMode.IMMEDIATE)
         self.assertEqual(instruction.operand, 0x4558)
 
+
 class TestRetiDecode(unittest.TestCase):
 
     def test_reti_decode(self):
@@ -34,6 +35,7 @@ class TestRetiDecode(unittest.TestCase):
         self.assertEqual(instruction.register, Register.R0)
         self.assertEqual(instruction.operand, None)
 
+
 class TestPushImmDecode(unittest.TestCase):
 
     def test_push_immediate_decode(self):
@@ -48,6 +50,7 @@ class TestPushImmDecode(unittest.TestCase):
         self.assertEqual(instruction.width, OperandWidth.WORD)
         self.assertEqual(instruction.addressing_mode, AddressingMode.IMMEDIATE)
         self.assertEqual(instruction.operand, 0xa)
+
 
 class TestPushConstGenDecode(unittest.TestCase):
 
@@ -64,6 +67,21 @@ class TestPushConstGenDecode(unittest.TestCase):
         self.assertEqual(instruction.addressing_mode, AddressingMode.CONSTANT2)
         self.assertEqual(instruction.register, Register.R3)
         self.assertEqual(instruction.operand, None)
+
+
+class TestJmpDecode(unittest.TestCase):
+
+    def test_jmp_decode(self):
+        # should be jmp #0x446a
+        raw = b'\x06\x3c'
+        ip = 0x445c
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, JumpInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.JMP)
+        self.assertEqual(instruction.target, 0x446a)
+
 
 if __name__ == '__main__':
     unittest.main()
