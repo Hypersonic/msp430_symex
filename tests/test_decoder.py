@@ -121,5 +121,43 @@ class TestMovOffsetRegDecode(unittest.TestCase):
         self.assertEqual(instruction.dest_operand, None)
 
 
+class TestMovRegOffsetDecode(unittest.TestCase):
+
+    def test_mov_reg_offset_decode(self):
+
+        raw = b'\x81\x4f\x04\x00' # should be mov r15, 0x4(r1)
+        ip = 0x4512
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, DoubleOperandInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.MOV)
+        self.assertEqual(instruction.width, OperandWidth.WORD)
+        self.assertEqual(instruction.source_addressing_mode, AddressingMode.DIRECT)
+        self.assertEqual(instruction.source_register, Register.R15)
+        self.assertEqual(instruction.source_operand, None)
+        self.assertEqual(instruction.dest_addressing_mode, AddressingMode.INDEXED)
+        self.assertEqual(instruction.dest_register, Register.R1)
+        self.assertEqual(instruction.dest_operand, 0x4)
+
+
+class TestMovOffsetOffsetDecode(unittest.TestCase):
+    def test_mov_offset_offset_decode(self):
+        raw = b'\x9f\x4f\x86\x45\x00\x24' # should be mov 0x4586(r15), 0x2400(r15)
+        ip = 0x441c
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, DoubleOperandInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.MOV)
+        self.assertEqual(instruction.width, OperandWidth.WORD)
+        self.assertEqual(instruction.source_addressing_mode, AddressingMode.INDEXED)
+        self.assertEqual(instruction.source_register, Register.R15)
+        self.assertEqual(instruction.source_operand, 0x4586)
+        self.assertEqual(instruction.dest_addressing_mode, AddressingMode.INDEXED)
+        self.assertEqual(instruction.dest_register, Register.R15)
+        self.assertEqual(instruction.dest_operand, 0x2400)
+
+
 if __name__ == '__main__':
     unittest.main()
