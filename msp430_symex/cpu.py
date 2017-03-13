@@ -929,7 +929,7 @@ class CPU:
 
         # C bit
         # basically we check if the highest bit transitioned from a 1 to a 0
-        highest_bit = lambda x: Extract(15, 15, x)
+        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
         did_overflow = And(highest_bit(dest_val) == 1, \
                            highest_bit(dest_val - source_val) == 0)
         set_states = [x for x in new_states] # C bit set
