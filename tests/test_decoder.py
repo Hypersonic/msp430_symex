@@ -102,5 +102,24 @@ class TestMovRegRegDecode(unittest.TestCase):
         self.assertEqual(instruction.dest_operand, None)
 
 
+class TestMovOffsetRegDecode(unittest.TestCase):
+
+    def test_mov_offset_reg_decode(self):
+        raw = b'\x5f\x44\xfc\xff' # should be mov.b -0x4(r4), r15
+        ip = 0x453a
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, DoubleOperandInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.MOV)
+        self.assertEqual(instruction.width, OperandWidth.BYTE)
+        self.assertEqual(instruction.source_addressing_mode, AddressingMode.INDEXED)
+        self.assertEqual(instruction.source_register, Register.R4)
+        self.assertEqual(instruction.source_operand, -0x4)
+        self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
+        self.assertEqual(instruction.dest_register, Register.R15)
+        self.assertEqual(instruction.dest_operand, None)
+
+
 if __name__ == '__main__':
     unittest.main()
