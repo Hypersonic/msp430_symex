@@ -83,6 +83,34 @@ class TestJmpDecode(unittest.TestCase):
         self.assertEqual(instruction.target, 0x446a)
 
 
+class TestJnzDecode(unittest.TestCase):
+
+    def test_jnz_decode(self):
+
+        raw = b'\xf9\x23' # should be jnz #0x4416
+        ip = 0x4422
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, JumpInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.JNZ)
+        self.assertEqual(instruction.target, 0x4416)
+
+
+class TestJzDecode(unittest.TestCase):
+
+    def test_jz_decode(self):
+
+        raw = b'\x06\x24' # should be jz #0x4438
+        ip = 0x442a
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, JumpInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.JZ)
+        self.assertEqual(instruction.target, 0x4438)
+
+
 class TestMovRegRegDecode(unittest.TestCase):
 
     def test_mov_reg_reg_decode(self):
