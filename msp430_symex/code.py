@@ -6,7 +6,7 @@ it'll return an (Instruction, length) pair. Just advance your bytestream
 by length, and you can do whatever you want with the instructions.
 I recommend symbolically executing them! :)
 """
-from enum import Enum, auto, unique
+from enum import Enum, unique
 from z3 import is_bv, BitVecVal
 
 
@@ -16,35 +16,35 @@ class Opcode(Enum):
     Opcodes for instructions.
     """
     # Single-operand family
-    RRC = auto()
-    SWPB = auto()
-    RRA = auto()
-    SXT = auto()
-    PUSH = auto()
-    CALL = auto()
-    RETI = auto()
+    RRC = 0
+    SWPB = 1
+    RRA = 2
+    SXT = 3
+    PUSH = 4
+    CALL = 5
+    RETI = 6
     # Jump family
-    JNZ = auto()
-    JZ = auto()
-    JNC = auto()
-    JC = auto()
-    JN = auto()
-    JGE = auto()
-    JL = auto()
-    JMP = auto()
+    JNZ = 7
+    JZ = 8
+    JNC = 9
+    JC = 10
+    JN = 11
+    JGE = 12
+    JL = 13
+    JMP = 14
     # Double-operand family
-    MOV = auto()
-    ADD = auto()
-    ADDC = auto()
-    SUBC = auto()
-    SUB = auto()
-    CMP = auto()
-    DADD = auto()
-    BIT = auto()
-    BIC = auto()
-    BIS = auto()
-    XOR = auto()
-    AND = auto()
+    MOV = 15
+    ADD = 16
+    ADDC = 17
+    SUBC = 18
+    SUB = 19
+    CMP = 20
+    DADD = 21
+    BIT = 22
+    BIC = 23
+    BIS = 24
+    XOR = 25
+    AND = 26
 
 
 @unique
@@ -52,8 +52,8 @@ class OperandWidth(Enum):
     """
     An Operand can be 1-byte or 1-word long. We encode that with one of these.
     """
-    WORD = auto()
-    BYTE = auto()
+    WORD = 0
+    BYTE = 1
 
 
 @unique
@@ -64,42 +64,42 @@ class AddressingMode(Enum):
     https://en.wikipedia.org/wiki/MSP430#MSP430_CPU
     """
     # Normal addressing modes
-    DIRECT = auto()
-    INDEXED = auto()
-    INDIRECT = auto()
-    AUTOINCREMENT = auto()
+    DIRECT = 0
+    INDEXED = 1
+    INDIRECT = 2
+    AUTOINCREMENT = 3
     # R0 addressing modes
-    SYMBOLIC = auto()
-    IMMEDIATE = auto()
+    SYMBOLIC = 4
+    IMMEDIATE = 5
     # R2 (SR) special-case modes
-    ABSOLUTE = auto()
-    CONSTANT4 = auto()
-    CONSTANT8 = auto()
+    ABSOLUTE = 6
+    CONSTANT4 = 7
+    CONSTANT8 = 8
     # R3 (CG) special-case modes
-    CONSTANT0 = auto()
-    CONSTANT1 = auto()
-    CONSTANT2 = auto()
-    CONSTANTNEG1 = auto()
+    CONSTANT0 = 9
+    CONSTANT1 = 10
+    CONSTANT2 = 11
+    CONSTANTNEG1 = 12
 
 
 @unique
 class Register(Enum):
-    R0 = auto()
-    R1 = auto()
-    R2 = auto()
-    R3 = auto()
-    R4 = auto()
-    R5 = auto()
-    R6 = auto()
-    R7 = auto()
-    R8 = auto()
-    R9 = auto()
-    R10 = auto()
-    R11 = auto()
-    R12 = auto()
-    R13 = auto()
-    R14 = auto()
-    R15 = auto()
+    R0 = 0
+    R1 = 1
+    R2 = 2
+    R3 = 3
+    R4 = 4
+    R5 = 5
+    R6 = 6
+    R7 = 7
+    R8 = 8
+    R9 = 9
+    R10 = 10
+    R11 = 11
+    R12 = 12
+    R13 = 13
+    R14 = 14
+    R15 = 15
 
 
 class SingleOperandInstruction:

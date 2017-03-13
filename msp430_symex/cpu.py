@@ -1,4 +1,4 @@
-from enum import Enum, unique, auto
+from enum import Enum, unique
 from z3 import BitVecVal, Concat, Extract, And, Or, Not, simplify, If
 
 from .code import Register, Opcode, OperandWidth, AddressingMode, \
@@ -10,8 +10,8 @@ class DestinationType(Enum):
     """
     The type of a destination operand while executing instructions
     """
-    REGISTER = auto()
-    ADDRESS = auto()
+    REGISTER = 0
+    ADDRESS = 1
 
 class RegisterFile:
     """
