@@ -83,5 +83,24 @@ class TestJmpDecode(unittest.TestCase):
         self.assertEqual(instruction.target, 0x446a)
 
 
+class TestMovRegRegDecode(unittest.TestCase):
+
+    def test_mov_reg_reg_decode(self):
+        raw = b'\x0b\x4f' # should be mov r15, r11
+        ip = 0x455a
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, DoubleOperandInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.MOV)
+        self.assertEqual(instruction.width, OperandWidth.WORD)
+        self.assertEqual(instruction.source_addressing_mode, AddressingMode.DIRECT)
+        self.assertEqual(instruction.source_register, Register.R15)
+        self.assertEqual(instruction.source_operand, None)
+        self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
+        self.assertEqual(instruction.dest_register, Register.R11)
+        self.assertEqual(instruction.dest_operand, None)
+
+
 if __name__ == '__main__':
     unittest.main()
