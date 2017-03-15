@@ -29,7 +29,7 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x4558)
 
-    def test_single_operand_register(self):
+    def test_single_operand_direct(self):
         # swp.b r15
         raw = b'\x8f\x10'
         addr = BitVecVal(0x44fc, 16)
