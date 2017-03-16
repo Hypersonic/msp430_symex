@@ -293,7 +293,10 @@ def decode_single_operand_instruction(address, data):
     def get_operand(data, addressing_mode):
         n_bytes = 2
 
-        modes_with_operands = {AddressingMode.IMMEDIATE, AddressingMode.INDEXED}
+        modes_with_operands = {AddressingMode.IMMEDIATE, \
+                AddressingMode.INDEXED, \
+                AddressingMode.SYMBOLIC, \
+                AddressingMode.ABSOLUTE}
         if addressing_mode in modes_with_operands: # operand is in the instruction stream, extract
             operand = int.from_bytes(data[2:2+n_bytes], 'little')
             operand = BitVecVal(operand, 8 * n_bytes)
