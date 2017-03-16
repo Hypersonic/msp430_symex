@@ -474,7 +474,12 @@ def decode_double_operand_instruction(address, data):
     def get_operand(data, addressing_mode, current_offset):
         n_bytes = 2
 
-        modes_with_operands = {AddressingMode.IMMEDIATE, AddressingMode.INDEXED, AddressingMode.ABSOLUTE}
+        modes_with_operands = { \
+            AddressingMode.IMMEDIATE, \
+            AddressingMode.INDEXED, \
+            AddressingMode.ABSOLUTE, \
+            AddressingMode.SYMBOLIC \
+        }
         if addressing_mode in modes_with_operands: # operand is in the instruction stream, extract
             raw = data[current_offset : current_offset + n_bytes]
             operand = int.from_bytes(raw, 'little')

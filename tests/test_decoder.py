@@ -144,6 +144,28 @@ class TestJmpDecode(unittest.TestCase):
         self.assertEqual(target, 0x4438)
 
 
+class TestDoubleOperandDecode(unittest.TestCase):
+
+    def test_mov_symbolic_decode(self):
+        # mov 0x2400, r1
+        raw = b'\x11\x40\xfe\x23'
+        ip = 0xc0de
+
+        instruction, _ = decode_instruction(ip, raw)
+        self.assertIsInstance(instruction, DoubleOperandInstruction)
+        self.assertEqual(instruction.raw, list(raw))
+        self.assertEqual(instruction.opcode, Opcode.MOV)
+        self.assertEqual(instruction.width, OperandWidth.WORD)
+        self.assertEqual(instruction.source_addressing_mode, AddressingMode.SYMBOLIC)
+        self.assertEqual(instruction.source_register, Register.R0)
+        source_operand = instruction.source_operand
+        source_operand = source_operand.as_long()
+        self.assertEqual(source_operand, 0x2400 - 2)
+        self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
+        self.assertEqual(instruction.dest_register, Register.R1)
+        self.assertEqual(instruction.dest_operand, None)
+
+
 class TestMovRegRegDecode(unittest.TestCase):
 
     def test_mov_reg_reg_decode(self):
