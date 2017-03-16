@@ -537,12 +537,12 @@ class CPU:
             dest_type = DestinationType.REGISTER
 
         elif instruction.dest_addressing_mode == AddressingMode.INDEXED:
-            dest_loc = st.cpu.registers[instruction.dest_register] + \
+            dest_loc = state.cpu.registers[instruction.dest_register] + \
                     instruction.dest_operand
             dest_type = DestinationType.ADDRESS
 
         elif instruction.dest_addressing_mode == AddressingMode.SYMBOLIC:
-            dest_loc = st.cpu.registers[Register.R0] + instruction.dest_operand
+            dest_loc = state.cpu.registers[Register.R0] + instruction.dest_operand
             dest_type = DestinationType.ADDRESS
 
         elif instruction.dest_addressing_mode == AddressingMode.ABSOLUTE:

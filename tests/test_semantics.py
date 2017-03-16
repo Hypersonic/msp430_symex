@@ -5,7 +5,7 @@ from z3 import BitVecVal, simplify
 from msp430_symex.code import Opcode, OperandWidth, Register, AddressingMode, \
         SingleOperandInstruction, DoubleOperandInstruction, JumpInstruction, \
         decode_instruction
-from msp430_symex.cpu import RegisterFile, DestinationType, CPU 
+from msp430_symex.cpu import RegisterFile, DestinationType, CPU
 from msp430_symex.state import State
 from msp430_symex.memory import Memory
 
@@ -438,6 +438,71 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_signed_long()
 
         self.assertEqual(operand, -0x1)
+
+
+class TestGetDoubleOperandDestLocation(unittest.TestCase):
+
+    def test_double_operand_dest_direct(self):
+        # mov r1, r15
+        raw = b'\x0f\x41'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+
+        self.assertEqual(dest, Register.R15)
+        self.assertEqual(dest_type, DestinationType.REGISTER)
+
+    def test_double_operand_dest_indexed(self):
+        # mov r1, 0x2400(r15)
+        raw = b'\x8f\x41\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+        dest = simplify(dest).as_long()
+
+        self.assertEqual(dest, 0x2400 + 0x1234)
+        self.assertEqual(dest_type, DestinationType.ADDRESS)
+
+    def test_double_operand_dest_symbolic(self):
+        # mov r1, 0x2400
+        raw = b'\x80\x41\xfe\x23'
+        addr = BitVecVal(0x1234, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+        dest = simplify(dest).as_long()
+
+        self.assertEqual(dest, 0x2400 + 0x1234 - 2)
+        self.assertEqual(dest_type, DestinationType.ADDRESS)
+
+    def test_double_operand_dest_absolute(self):
+        # mov r1, &0x2400
+        raw = b'\x82\x41\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+        dest = simplify(dest).as_long()
+
+        self.assertEqual(dest, 0x2400)
+        self.assertEqual(dest_type, DestinationType.ADDRESS)
 
 
 if __name__ == '__main__':
