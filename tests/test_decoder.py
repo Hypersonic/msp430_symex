@@ -165,9 +165,6 @@ class TestDoubleOperandDecode(unittest.TestCase):
         self.assertEqual(instruction.dest_register, Register.R1)
         self.assertEqual(instruction.dest_operand, None)
 
-
-class TestMovRegRegDecode(unittest.TestCase):
-
     def test_mov_reg_reg_decode(self):
         raw = b'\x0b\x4f' # should be mov r15, r11
         ip = 0x455a
@@ -183,9 +180,6 @@ class TestMovRegRegDecode(unittest.TestCase):
         self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
         self.assertEqual(instruction.dest_register, Register.R11)
         self.assertEqual(instruction.dest_operand, None)
-
-
-class TestMovOffsetRegDecode(unittest.TestCase):
 
     def test_mov_offset_reg_decode(self):
         raw = b'\x5f\x44\xfc\xff' # should be mov.b -0x4(r4), r15
@@ -204,9 +198,6 @@ class TestMovOffsetRegDecode(unittest.TestCase):
         self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
         self.assertEqual(instruction.dest_register, Register.R15)
         self.assertEqual(instruction.dest_operand, None)
-
-
-class TestMovRegOffsetDecode(unittest.TestCase):
 
     def test_mov_reg_offset_decode(self):
 
@@ -227,8 +218,6 @@ class TestMovRegOffsetDecode(unittest.TestCase):
         dest_operand = simplify(dest_operand).as_signed_long()
         self.assertEqual(dest_operand, 0x4)
 
-
-class TestMovOffsetOffsetDecode(unittest.TestCase):
     def test_mov_offset_offset_decode(self):
         raw = b'\x9f\x4f\x86\x45\x00\x24' # should be mov 0x4586(r15), 0x2400(r15)
         ip = 0x441c
