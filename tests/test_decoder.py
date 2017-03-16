@@ -1,4 +1,6 @@
 import unittest
+from z3 import simplify
+
 from msp430_symex.code import decode_instruction, DoubleOperandInstruction, \
         SingleOperandInstruction, JumpInstruction, Opcode, OperandWidth, \
         AddressingMode, Register
@@ -16,7 +18,9 @@ class TestSingleOperandDecode(unittest.TestCase):
         self.assertEqual(instruction.opcode, Opcode.CALL)
         self.assertEqual(instruction.width, OperandWidth.WORD)
         self.assertEqual(instruction.addressing_mode, AddressingMode.IMMEDIATE)
-        self.assertEqual(instruction.operand, 0x4558) #TODO: CONCRETIZE FIRST
+        operand = instruction.operand
+        operand = simplify(operand).as_long()
+        self.assertEqual(operand, 0x4558)
 
     def test_reti_decode(self):
         # should be "reti pc"
@@ -47,7 +51,9 @@ class TestSingleOperandDecode(unittest.TestCase):
         self.assertEqual(instruction.addressing_mode, AddressingMode.SYMBOLIC)
         self.assertEqual(instruction.register, Register.R0)
         # 0x1232 instead of 0x1234 because -2 from instruction width
-        self.assertEqual(instruction.operand, 0x1232) #TODO: CONCRETIZE FIRST
+        operand = instruction.operand
+        operand = simplify(operand).as_long()
+        self.assertEqual(operand, 0x1232)
 
     def test_call_absolute_decode(self):
         # call &0x1234
@@ -62,7 +68,9 @@ class TestSingleOperandDecode(unittest.TestCase):
         self.assertEqual(instruction.width, OperandWidth.WORD)
         self.assertEqual(instruction.addressing_mode, AddressingMode.ABSOLUTE)
         self.assertEqual(instruction.register, Register.R2)
-        self.assertEqual(instruction.operand, 0x1234) #TODO: CONCRETIZE FIRST
+        operand = instruction.operand
+        operand = simplify(operand).as_long()
+        self.assertEqual(operand, 0x1234)
 
     def test_push_immediate_decode(self):
         # should be "push 0xa"
@@ -75,7 +83,9 @@ class TestSingleOperandDecode(unittest.TestCase):
         self.assertEqual(instruction.opcode, Opcode.PUSH)
         self.assertEqual(instruction.width, OperandWidth.WORD)
         self.assertEqual(instruction.addressing_mode, AddressingMode.IMMEDIATE)
-        self.assertEqual(instruction.operand, 0xa) #TODO: CONCRETIZE FIRST
+        operand = instruction.operand
+        operand = simplify(operand).as_long()
+        self.assertEqual(operand, 0xa)
 
     def test_push_constant_generator_decode(self):
         # should be "push 0x2"
@@ -103,7 +113,9 @@ class TestJmpDecode(unittest.TestCase):
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JMP)
-        self.assertEqual(instruction.target, 0x446a) #TODO: CONCRETIZE FIRST
+        target = instruction.target
+        target = simplify(target).as_long()
+        self.assertEqual(target, 0x446a)
 
     def test_jnz_decode(self):
 
@@ -114,7 +126,9 @@ class TestJmpDecode(unittest.TestCase):
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JNZ)
-        self.assertEqual(instruction.target, 0x4416) #TODO: CONCRETIZE FIRST
+        target = instruction.target
+        target = simplify(target).as_long()
+        self.assertEqual(target, 0x4416)
 
     def test_jz_decode(self):
 
@@ -125,7 +139,9 @@ class TestJmpDecode(unittest.TestCase):
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JZ)
-        self.assertEqual(instruction.target, 0x4438) #TODO: CONCRETIZE FIRST
+        target = instruction.target
+        target = simplify(target).as_long()
+        self.assertEqual(target, 0x4438)
 
 
 class TestMovRegRegDecode(unittest.TestCase):
@@ -160,7 +176,9 @@ class TestMovOffsetRegDecode(unittest.TestCase):
         self.assertEqual(instruction.width, OperandWidth.BYTE)
         self.assertEqual(instruction.source_addressing_mode, AddressingMode.INDEXED)
         self.assertEqual(instruction.source_register, Register.R4)
-        self.assertEqual(instruction.source_operand, -0x4) #TODO: CONCRETIZE FIRST
+        source_operand = instruction.source_operand
+        source_operand = simplify(source_operand).as_signed_long()
+        self.assertEqual(source_operand, -0x4)
         self.assertEqual(instruction.dest_addressing_mode, AddressingMode.DIRECT)
         self.assertEqual(instruction.dest_register, Register.R15)
         self.assertEqual(instruction.dest_operand, None)
@@ -183,7 +201,9 @@ class TestMovRegOffsetDecode(unittest.TestCase):
         self.assertEqual(instruction.source_operand, None)
         self.assertEqual(instruction.dest_addressing_mode, AddressingMode.INDEXED)
         self.assertEqual(instruction.dest_register, Register.R1)
-        self.assertEqual(instruction.dest_operand, 0x4) #TODO: CONCRETIZE FIRST
+        dest_operand = instruction.dest_operand
+        dest_operand = simplify(dest_operand).as_signed_long()
+        self.assertEqual(dest_operand, 0x4)
 
 
 class TestMovOffsetOffsetDecode(unittest.TestCase):
@@ -198,10 +218,14 @@ class TestMovOffsetOffsetDecode(unittest.TestCase):
         self.assertEqual(instruction.width, OperandWidth.WORD)
         self.assertEqual(instruction.source_addressing_mode, AddressingMode.INDEXED)
         self.assertEqual(instruction.source_register, Register.R15)
-        self.assertEqual(instruction.source_operand, 0x4586) #TODO: CONCRETIZE FIRST
+        source_operand = instruction.source_operand
+        source_operand = simplify(source_operand).as_signed_long()
+        self.assertEqual(source_operand, 0x4586)
         self.assertEqual(instruction.dest_addressing_mode, AddressingMode.INDEXED)
         self.assertEqual(instruction.dest_register, Register.R15)
-        self.assertEqual(instruction.dest_operand, 0x2400) #TODO: CONCRETIZE FIRST
+        dest_operand = instruction.dest_operand
+        dest_operand = simplify(dest_operand).as_signed_long()
+        self.assertEqual(dest_operand, 0x2400)
 
 
 if __name__ == '__main__':
