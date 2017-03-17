@@ -441,6 +441,21 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xbeef)
 
+    def test_double_operand_source_direct_byte(self):
+        # mov.b r15, r1
+        raw = b'\x41\x4f'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeef, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xef)
+
     def test_double_operand_source_indexed(self):
         # mov 0x2400(r15), r1
         raw = b'\x11\x4f\x00\x24'
@@ -460,6 +475,24 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_double_operand_source_indexed_byte(self):
+        # mov.b 0x2400(r15), r1
+        raw = b'\x51\x4f\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeef, 16)
+
+        src_loc = 0x2400 + 0xbeef
+        state.memory[src_loc] = BitVecVal(0xad, 8)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xad)
+
     def test_double_operand_source_indirect(self):
         # mov @r15, r1
         raw = b'\x21\x4f'
@@ -478,6 +511,24 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_long()
 
         self.assertEqual(operand, 0xdead)
+
+    def test_double_operand_source_indirect_byte(self):
+        # mov.b @r15, r1
+        raw = b'\x61\x4f'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeef, 16)
+
+        src_loc = 0xbeef
+        state.memory[src_loc] = BitVecVal(0xad, 8)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xad)
 
     def test_double_operand_source_autoincrement(self):
         # mov @r15+, r1
@@ -502,6 +553,28 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         self.assertEqual(operand, 0xdead)
         self.assertEqual(new_reg, 0xbef1)
 
+    def test_double_operand_source_autoincrement_byte(self):
+        # mov.b @r15+, r1
+        raw = b'\x71\x4f'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeef, 16)
+
+        src_loc = 0xbeef
+        state.memory[src_loc] = BitVecVal(0xad, 8)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        new_reg = state.cpu.registers['R15']
+        new_reg = simplify(new_reg).as_long()
+
+        self.assertEqual(operand, 0xad)
+        self.assertEqual(new_reg, 0xbef0)
+
     def test_double_operand_source_symbolic(self):
         # mov 0x2400, r1
         raw = b'\x11\x40\xfe\x23'
@@ -521,6 +594,24 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_double_operand_source_symbolic_byte(self):
+        # mov.b 0x2400, r1
+        raw = b'\x51\x40\xfe\x23'
+        addr = BitVecVal(0xc0de, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(0xc0de, 16)
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        src_loc = 0x2400 + 0xc0de - 2
+        state.memory[src_loc] = BitVecVal(0xad, 8)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xad)
+
     def test_double_operand_source_immediate(self):
         # mov #0xdead, r1
         raw = b'\x31\x40\xad\xde'
@@ -534,6 +625,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_long()
 
         self.assertEqual(operand, 0xdead)
+
+    def test_double_operand_source_immediate_byte(self):
+        # mov.b #0xdead, r1
+        raw = b'\x71\x40\xad\xde'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xad)
 
     def test_double_operand_source_absolute(self):
         # mov &2400, r1
@@ -553,9 +658,40 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_double_operand_source_absolute_byte(self):
+        # mov.b &2400, r1
+        raw = b'\x51\x42\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        src_loc = 0x2400
+        state.memory[src_loc] = BitVecVal(0xad, 8)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0xad)
+
     def test_double_operand_source_constant4(self):
         # mov #4, r1
         raw = b'\x21\x42'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0x4)
+
+    def test_double_operand_source_constant4_byte(self):
+        # mov.b #4, r1
+        raw = b'\x61\x42'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 
@@ -581,9 +717,37 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x8)
 
+    def test_double_operand_source_constant8_byte(self):
+        # mov.b #8, r1
+        raw = b'\x71\x42'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0x8)
+
     def test_double_operand_source_constant0(self):
         # mov #0, r1
         raw = b'\x01\x43'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0x0)
+
+    def test_double_operand_source_constant0_byte(self):
+        # mov.b #0, r1
+        raw = b'\x41\x43'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 
@@ -609,6 +773,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x1)
 
+    def test_double_operand_source_constant1_byte(self):
+        # mov.b #1, r1
+        raw = b'\x51\x43'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0x1)
+
     def test_double_operand_source_constant2(self):
         # mov #2, r1
         raw = b'\x21\x43'
@@ -623,9 +801,37 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x2)
 
+    def test_double_operand_source_constant2_byte(self):
+        # mov.b #2, r1
+        raw = b'\x61\x43'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_long()
+
+        self.assertEqual(operand, 0x2)
+
     def test_double_operand_source_constantneg1(self):
         # mov #-1, r1
         raw = b'\x31\x43'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+        operand = simplify(operand).as_signed_long()
+
+        self.assertEqual(operand, -0x1)
+
+    def test_double_operand_source_constantneg1_byte(self):
+        # mov.b #-1, r1
+        raw = b'\x71\x43'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 
