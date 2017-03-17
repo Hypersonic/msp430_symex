@@ -424,6 +424,7 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, -1)
 
+
 class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
     def test_double_operand_source_direct(self):
