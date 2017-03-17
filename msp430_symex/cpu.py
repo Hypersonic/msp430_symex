@@ -817,7 +817,7 @@ class CPU:
         # basically we check if the highest bit transitioned from a 1 to a 0
         highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
         did_overflow = And(highest_bit(dest_val) == 1, \
-                           highest_bit(dest_val + source_val) == 0)
+                           highest_bit(dest_val - source_val) == 0)
         set_states = [x for x in new_states] # C bit set
         unset_states = [x.clone() for x in new_states] # C bit cleared
         for st in set_states:
@@ -851,8 +851,9 @@ class CPU:
                     st.cpu.registers[dest_loc] = source_val + dest_val
 
                 elif instruction.width == OperandWidth.BYTE:
+                    # top bits get cloeared
                     st.cpu.registers[dest_loc] = Concat( \
-                            Extract(15, 8, st.cpu.registers[dest_loc]), \
+                            BitVecVal(0, 8), \
                             source_val + dest_val)
 
             elif dest_type == DestinationType.ADDRESS:
