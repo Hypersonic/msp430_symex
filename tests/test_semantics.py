@@ -34,6 +34,21 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x1234)
 
+    def test_single_operand_direct_byte(self):
+        # rra.b r15
+        raw = b'\x4f\x11'
+        addr = BitVecVal(0x44fc, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        cpu = CPU()
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16) # put known val into R15
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x34)
+
     def test_single_operand_indexed(self):
         # push 0x2400(r15)
         raw = b'\x1f\x12\x00\x24'
@@ -51,6 +66,23 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = simplify(operand).as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0xdead)
+
+    def test_single_operand_indexed_byte(self):
+        # rra.b 0x2400(r15)
+        raw = b'\x5f\x11\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16) # put known val into R15
+
+        # put known val in memory location
+        state.memory[0x2400 + 0x1234] = BitVecVal(0xc0, 8)
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0xc0)
 
     def test_single_operand_indirect(self):
         # push @r15
@@ -70,8 +102,26 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_single_operand_indirect_byte(self):
+        # rra.b @r15
+        raw = b'\x6f\x11'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16) # put known val into R15
+
+        # put known val in memory location
+        state.memory[0x1234] = BitVecVal(0xc0, 8)
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0xc0)
+
+
     def test_single_operand_autoincrement(self):
-        # push @r15
+        # push @r15+
         raw = b'\x3f\x12'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
@@ -92,6 +142,27 @@ class TestGetSingleOperandValue(unittest.TestCase):
         self.assertEqual(operand, 0xdead)
         self.assertEqual(new_reg, 0x1236)
 
+    def test_single_operand_autoincrement_byte(self):
+        # rra.b @r15+
+        raw = b'\x7f\x11'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1234, 16) # put known val into R15
+
+        # put known val in memory location
+        state.memory[0x1234] = BitVecVal(0xc0, 8)
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        new_reg = state.cpu.registers['R15']
+        new_reg = simplify(new_reg).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0xc0)
+        self.assertEqual(new_reg, 0x1235)
+
     def test_single_operand_symbolic(self):
         # call 0x1234
         # (or call 0x1234(r0))
@@ -111,6 +182,24 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = simplify(operand).as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0xdead)
+        
+    def test_single_operand_symbolic_byte(self):
+        # rra.b 0x1234
+        raw = b'\x50\x11\x32\x12'
+        addr = BitVecVal(0xc0de, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        stored_addr = 0x1232 + 0xc0de # where things are stored (ip + imm - 2)
+        state = blank_state()
+        state.cpu.registers['R0'] = addr
+
+        # put known val in memory location
+        state.memory[stored_addr] = BitVecVal(0xd0, 8)
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0xd0)
 
     def test_single_operand_immediate(self):
         # call #0x4558
@@ -125,6 +214,20 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = operand.as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0x4558)
+
+    def test_single_operand_immediate_byte(self):
+        # rra.b #0x1234
+        raw = b'\x70\x11\x34\x12'
+        addr = BitVecVal(0x4440, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = addr
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x34) # we should only get back the low byte
 
     # R2 (SR) special-case modes
 
@@ -146,6 +249,23 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_single_operand_absolute_byte(self):
+        # rra.b &0x1234
+        raw = b'\x52\x11\x34\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        stored_addr = 0x1234
+        state = blank_state()
+
+        # put known val in memory location
+        state.memory[stored_addr] = BitVecVal(0xc0, 8)
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = simplify(operand).as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0xc0)
+
     def test_single_operand_constant4(self):
         # push #4
         raw = b'\x22\x12'
@@ -159,9 +279,35 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x4)
 
+    def test_single_operand_constant4_byte(self):
+        # rra.b #4
+        raw = b'\x62\x11'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x4)
+
     def test_single_operand_constant8(self):
         # push #8
         raw = b'\x32\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x8)
+
+    def test_single_operand_constant8_byte(self):
+        # rra.b #4
+        raw = b'\x72\x11'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 
@@ -187,9 +333,35 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x0)
 
+    def test_single_operand_constant0_byte(self):
+        # rra.b #0
+        raw = b'\x43\x11'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x0)
+
     def test_single_operand_constant1(self):
         # push #1
         raw = b'\x13\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x1)
+
+    def test_single_operand_constant1_byte(self):
+        # rra.b #1
+        raw = b'\x53\x11'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 
@@ -213,9 +385,35 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0x2)
 
+    def test_single_operand_constant2_byte(self):
+        # rra.b #1
+        raw = b'\x63\x11'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_long() # unwrap Z3 value
+
+        self.assertEqual(operand, 0x2)
+
     def test_single_operand_constantneg1(self):
         # push #-1
         raw = b'\x33\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        operand = operand.as_signed_long() # unwrap Z3 value
+
+        self.assertEqual(operand, -1)
+
+    def test_single_operand_constantneg1_byte(self):
+        # rra.b #-1
+        raw = b'\x73\x11'
         addr = BitVecVal(0x0, 16)
         ins, _ = decode_instruction(addr, raw)
 

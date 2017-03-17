@@ -219,7 +219,12 @@ class CPU:
                 val = state.memory[address]
 
         elif instruction.addressing_mode == AddressingMode.IMMEDIATE:
-            val = instruction.operand 
+            if instruction.width == OperandWidth.WORD:
+                val = instruction.operand 
+            elif instruction.width == OperandWidth.BYTE:
+                # I'm 99% sure SLAU144J 4.4.7.1 implies we mask off low byte
+                # That also makes sense semantically, so we do that
+                val = Extract(7, 0, instruction.operand)
 
         elif instruction.addressing_mode == AddressingMode.ABSOLUTE:
             address = instruction.operand
