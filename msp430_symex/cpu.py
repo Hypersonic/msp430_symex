@@ -1024,7 +1024,7 @@ class CPU:
             elif instruction.width == OperandWidth.BYTE:
                 st.cpu.registers[dest_loc] &= \
                         Concat( \
-                        Extract(15, 8, st.cpu.registers[dest_loc]), source_val)
+                        BitVecVal(0, 8), source_val)
         elif dest_type == DestinationType.ADDRESS:
             if instruction.width == OperandWidth.WORD:
                 st.memory[dest_loc] &= Extract(7, 0, source_val)
