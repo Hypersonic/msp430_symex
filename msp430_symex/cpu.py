@@ -1075,8 +1075,6 @@ class CPU:
         # TODO: only do this if ALL the others are != 0
         all_nonzero = And([x != 0 for x in sym_bytes])
         # if all are nonzero, byte after last is set to zero
-        # TODO: make it such that if a byte is \n, the next byte is zero...
-        # this might be difficult
         st.memory[dest_addr + length + 1] = If(all_nonzero, \
                                                BitVecVal(0, 8), \
                                                st.memory[dest_addr + length + 1])
