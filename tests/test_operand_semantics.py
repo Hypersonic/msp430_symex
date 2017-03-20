@@ -6,16 +6,8 @@ from msp430_symex.code import Opcode, OperandWidth, Register, AddressingMode, \
         SingleOperandInstruction, DoubleOperandInstruction, JumpInstruction, \
         decode_instruction
 from msp430_symex.cpu import RegisterFile, DestinationType, CPU
-from msp430_symex.state import State
+from msp430_symex.state import State, blank_state
 from msp430_symex.memory import Memory
-
-def blank_state():
-    # TODO: initialize stuff to sane non-None values
-    cpu = CPU()
-    memory_data = [BitVecVal(0, 8) for _ in range(0xFFFF)]
-    memory = Memory(memory_data)
-    return State(cpu, memory, None, None, None, False)
-
 
 class TestGetSingleOperandValue(unittest.TestCase):
     
