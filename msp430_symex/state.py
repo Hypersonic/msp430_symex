@@ -241,8 +241,9 @@ def start_path_group(memory_dump, start_ip, avoid=None):
 def blank_state():
     # TODO: initialize stuff to sane non-None values
     cpu = CPU()
-    memory_data = [BitVecVal(0, 8) for _ in range(0xFFFF)]
+    memory_data = [z3.BitVecVal(0, 8) for _ in range(0xFFFF)]
     memory = Memory(memory_data)
-    return State(cpu, memory, None, None, None, False)
-
-
+    path = Path()
+    inp = IO([])
+    out = IO([])
+    return State(cpu, memory, path, inp, out, False)
