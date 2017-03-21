@@ -775,10 +775,10 @@ class CPU:
                 dest_val = Extract(7, 0, st.cpu.registers[dest_loc])
         elif dest_type == DestinationType.ADDRESS:
             if instruction.width == OperandWidth.WORD:
-                dest_val = Concat(st.cpu.memory[dest_loc+1], \
-                        st.cpu.memory[dest_loc])
+                dest_val = Concat(st.memory[dest_loc+1], \
+                        st.memory[dest_loc])
             elif instruction.width == OperandWidth.BYTE:
-                dest_val = st.cpu.memory[dest_loc]
+                dest_val = st.memory[dest_loc]
 
 
         # From SLAU144J, the way all the flags are set:
@@ -862,7 +862,7 @@ class CPU:
                     st.memory[dest_loc+1] |= Extract(15, 8, source_val + dest_val)
 
                 elif instruction.width == OperandWidth.BYTE:
-                    st.cpu.memory[dest_loc] = source_val + dest_val
+                    st.memory[dest_loc] = source_val + dest_val
 
         return new_states
 
@@ -876,7 +876,110 @@ class CPU:
 
     def step_sub(self, state, instruction):
         assert instruction.opcode == Opcode.SUB
-        raise NotImplementedError('sub instruction')
+        st = state.clone()
+
+        source_val = self.get_double_operand_source_value(st, instruction)
+        dest_loc, dest_type = \
+                self.get_double_operand_dest_location(st, instruction)
+
+        if dest_type == DestinationType.REGISTER:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = st.cpu.registers[dest_loc]
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = Extract(7, 0, st.cpu.registers[dest_loc])
+        elif dest_type == DestinationType.ADDRESS:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = Concat(st.memory[dest_loc+1], \
+                        st.memory[dest_loc])
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = st.memory[dest_loc]
+
+
+        # From SLAU144J, the way all the flags are set:
+        # N: Set if src > dest, reset if src <= dest
+        # Z: Set if src = dest, reset if src != dest
+        # C: Set if there is a carry from MSB, reset otherwise
+        # V: Set if overflow occurs, reset otherwise, (more specifically, set if either:
+        #       (src < 0 and dest > 0 and dest - src < 0) or
+        #       (src > 0 and dest < 0 and dest - src > 0), unset otherwise)
+        new_states = [st]
+
+        # N bit
+        set_states = [x for x in new_states] # N bit set
+        unset_states = [x.clone() for x in new_states] # N bit cleared
+        for st in set_states:
+            st.path.add(source_val > dest_val)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+        for st in unset_states:
+            st.path.add(source_val <= dest_val)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+        new_states = set_states + unset_states
+
+        # Z bit
+        set_states = [x for x in new_states] # Z bit set
+        unset_states = [x.clone() for x in new_states] # Z bit cleared
+        for st in set_states:
+            st.path.add(source_val == dest_val)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+        for st in unset_states:
+            st.path.add(source_val != dest_val)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+        new_states = set_states + unset_states
+
+
+        # C bit
+        # basically we check if the highest bit transitioned from a 1 to a 0
+        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
+        did_overflow = And(highest_bit(dest_val) == 1, \
+                           highest_bit(dest_val - source_val) == 0)
+        set_states = [x for x in new_states] # C bit set
+        unset_states = [x.clone() for x in new_states] # C bit cleared
+        for st in set_states:
+            st.path.add(did_overflow)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
+        for st in unset_states:
+            st.path.add(Not(did_overflow))
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
+        new_states = set_states + unset_states
+        
+        # V bit
+        set_states = [x for x in new_states] # V bit set
+        unset_states = [x.clone() for x in new_states] # V bit cleared
+        for st in set_states:
+            # following conditions above...
+            condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
+            condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+            st.path.add(Or(condA, condB))
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
+        for st in unset_states:
+            # following conditions above...
+            condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
+            condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+            st.path.add(Not(Or(condA, condB)))
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+        new_states = set_states + unset_states
+
+        # set dest location to the difference in all states
+        for st in new_states:
+            if dest_type == DestinationType.REGISTER:
+                if instruction.width == OperandWidth.WORD:
+                    st.cpu.registers[dest_loc] = dest_val - source_val
+
+                elif instruction.width == OperandWidth.BYTE:
+                    # top bits get cloeared
+                    st.cpu.registers[dest_loc] = Concat( \
+                            BitVecVal(0, 8), \
+                            dest_val - source_val)
+
+            elif dest_type == DestinationType.ADDRESS:
+                if instruction.width == OperandWidth.WORD:
+                    st.memory[dest_loc] |= Extract(7, 0, dest_val - source_val)
+                    st.memory[dest_loc+1] |= Extract(15, 8, dest_val - source_val)
+
+                elif instruction.width == OperandWidth.BYTE:
+                    st.memory[dest_loc] = dest_val - source_val
+
+        return new_states
 
     def step_cmp(self, state, instruction):
         assert instruction.opcode == Opcode.CMP
@@ -894,10 +997,10 @@ class CPU:
                 dest_val = Extract(7, 0, st.cpu.registers[dest_loc])
         elif dest_type == DestinationType.ADDRESS:
             if instruction.width == OperandWidth.WORD:
-                dest_val = Concat(st.cpu.memory[dest_loc+1], \
-                        st.cpu.memory[dest_loc])
+                dest_val = Concat(st.memory[dest_loc+1], \
+                        st.memory[dest_loc])
             elif instruction.width == OperandWidth.BYTE:
-                dest_val = st.cpu.memory[dest_loc]
+                dest_val = st.memory[dest_loc]
 
 
         # From SLAU144J, the way all the flags are set:
