@@ -69,7 +69,23 @@ class TestGetsInterrupt(unittest.TestCase):
 int_enabledep
 int_setpageperms
 int_rand
-int_hsm1check
+"""
+
+class TestHSM1Interrupt(unittest.TestCase):
+
+    def test_hsm1_interrupt(self):
+        """
+        Because the HSM1 check can never pass, 
+        this just calls the HSM1 interrupt to make sure it does not error,
+        and returns 1 state.
+        """
+        state = blank_state()
+        new_states = state.cpu.int_hsm1check(state)
+
+        self.assertEqual(len(new_states), 1)
+
+
+"""
 int_hsm2check
 """
 

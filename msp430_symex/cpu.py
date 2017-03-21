@@ -1194,7 +1194,14 @@ class CPU:
         raise NotImplementedError('rand interrupt')
 
     def int_hsm1check(self, state):
-        raise NotImplementedError('hsm1check interrupt')
+        st = state.clone()
+
+        # XXX: We don't actually check this right now, just return as if
+        # the answer was incorrect. Unless I run into a problem which has
+        # an actual intended solution of guessing the HSM pass, this is
+        # clearly never going to do anything.
+
+        return [st]
 
     def int_hsm2check(self, state):
         raise NotImplementedError('hsm2check interrupt')
