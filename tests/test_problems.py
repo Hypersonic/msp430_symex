@@ -234,7 +234,7 @@ fff0:   4444 4444 4444 4444 4444 4444 4444 0044   DDDDDDDDDDDDDD.D"""
 
         # b'AAAAAAAAAAAAAAAA4' ('A's can be anything)
         self.assertEqual(len(winning_input), 17)
-        self.assertEqual(winning_input[16], b'4') # overflow with correct value
+        self.assertEqual(winning_input[16], 0x34) # overflow with correct value
 
 if __name__ == '__main__':
     unittest.main()
