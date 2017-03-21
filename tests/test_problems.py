@@ -173,6 +173,66 @@ class TestSydney(unittest.TestCase):
 
         self.assertEqual(winning_input, b"%U@+DPo'")
 
+class TestHanoi(unittest.TestCase):
+    def test_hanoi(self):
+        dump = \
+            """0000:   0000 4400 0000 0000 0000 0000 0000 0000   ..D.............
+0010:   *
+4400:   3140 0044 1542 5c01 75f3 35d0 085a 3f40   1@.D.B\.u.5..Z?@
+4410:   0000 0f93 0724 8245 5c01 2f83 9f4f 0c46   .....$.E\./..O.F
+4420:   0024 f923 3f40 2200 0f93 0624 8245 5c01   .$.#?@"....$.E\.
+4430:   1f83 cf43 0024 fa23 b012 2045 0f43 32d0   ...C.$.#.. E.C2.
+4440:   f000 fd3f 3040 0a46 3012 7f00 b012 7a45   ...?0@.F0...zE
+4450:   2153 3041 0412 0441 2453 2183 c443 fcff   !S0A...A$S!..C..
+4460:   3e40 fcff 0e54 0e12 0f12 3012 7d00 b012   >@...T....0.}...
+4470:   7a45 5f44 fcff 8f11 3152 3441 3041 456e   zE_D....1R4A0AEn
+4480:   7465 7220 7468 6520 7061 7373 776f 7264   ter the password
+4490:   2074 6f20 636f 6e74 696e 7565 2e00 5265    to continue..Re
+44a0:   6d65 6d62 6572 3a20 7061 7373 776f 7264   member: password
+44b0:   7320 6172 6520 6265 7477 6565 6e20 3820   s are between 8 
+44c0:   616e 6420 3136 2063 6861 7261 6374 6572   and 16 character
+44d0:   732e 0054 6573 7469 6e67 2069 6620 7061   s..Testing if pa
+44e0:   7373 776f 7264 2069 7320 7661 6c69 642e   ssword is valid.
+44f0:   0041 6363 6573 7320 6772 616e 7465 642e   .Access granted.
+4500:   0054 6861 7420 7061 7373 776f 7264 2069   .That password i
+4510:   7320 6e6f 7420 636f 7272 6563 742e 0000   s not correct...
+4520:   c243 1024 3f40 7e44 b012 de45 3f40 9e44   .C.$?@~D...E?@.D
+4530:   b012 de45 3e40 1c00 3f40 0024 b012 ce45   ...E>@..?@.$...E
+4540:   3f40 0024 b012 5444 0f93 0324 f240 a700   ?@.$..TD...$.@..
+4550:   1024 3f40 d344 b012 de45 f290 3400 1024   .$?@.D...E..4..$
+4560:   0720 3f40 f144 b012 de45 b012 4844 3041   . ?@.D...E..HD0A
+4570:   3f40 0145 b012 de45 3041 1e41 0200 0212   ?@.E...E0A.A....
+4580:   0f4e 8f10 024f 32d0 0080 b012 1000 3241   .N...O2.......2A
+4590:   3041 2183 0f12 0312 814f 0400 b012 7a45   0A!......O....zE
+45a0:   1f41 0400 3150 0600 3041 0412 0441 2453   .A..1P..0A...A$S
+45b0:   2183 3f40 fcff 0f54 0f12 1312 b012 7a45   !.?@...T......zE
+45c0:   5f44 fcff 8f11 3150 0600 3441 3041 0e12   _D....1P..4A0A..
+45d0:   0f12 2312 b012 7a45 3150 0600 3041 0b12   ..#...zE1P..0A..
+45e0:   0b4f 073c 1b53 8f11 0f12 0312 b012 7a45   .O.<.S........zE
+45f0:   2152 6f4b 4f93 f623 3012 0a00 0312 b012   !RoKO..#0.......
+4600:   7a45 2152 0f43 3b41 3041 0013 0000 0000   zE!R.C;A0A......
+4610:   *
+ff80:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ff90:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ffa0:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ffb0:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ffc0:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ffd0:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+ffe0:   4444 4444 4444 4444 4444 4444 4444 4444   DDDDDDDDDDDDDDDD
+fff0:   4444 4444 4444 4444 4444 4444 4444 0044   DDDDDDDDDDDDDD.D"""
+
+        #TODO: automatically find avoid address via CFG
+        pg = start_path_group(dump, 0x4400, avoid=0x4570)
+
+        pg.step_until_unlocked()
+
+        unlocked_state = list(pg.unlocked)[0]
+
+        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+
+        # b'AAAAAAAAAAAAAAAA4' ('A's can be anything)
+        self.assertEqual(len(winning_input), 17)
+        self.assertEqual(winning_input[16] == b'4') # overflow with correct value
 
 if __name__ == '__main__':
     unittest.main()
