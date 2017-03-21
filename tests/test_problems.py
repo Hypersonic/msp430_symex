@@ -59,7 +59,7 @@ class TestTutorial(unittest.TestCase):
 
 
 class TestNewOrleans(unittest.TestCase):
-    def test_new_orleans():
+    def test_new_orleans(self):
         """
         Test solving the New Orleans level of microcorruption.
         """
@@ -118,7 +118,7 @@ class TestNewOrleans(unittest.TestCase):
 
 
 class TestSydney(unittest.TestCase):
-    def test_sydney():
+    def test_sydney(self):
         """
         Test solving the Sydney level of microcorruption.
         """
