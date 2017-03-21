@@ -26,5 +26,43 @@ class TestPutcharInterrupt(unittest.TestCase):
         self.assertEqual(output, b'A')
 
 
+# waiting on getchar implementation
+"""
+class TestGetcharInterrupt(unittest.TestCase):
+    
+    def test_interrupt_getchar(self):
+        pass
+"""
+
+class TestGetsInterrupt(unittest.TestCase):
+
+    def test_interrupt_gets(self):
+        ARG_OFFSET = 6
+        STACK_LOC = 0x1234
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(STACK_LOC, 16)
+
+        addr = 0xc0de
+        length = 0x000f
+        state.memory[STACK_LOC + ARG_OFFSET] = BitVecVal(addr & 0xFF, 8)
+        state.memory[STACK_LOC + ARG_OFFSET + 1] = BitVecVal((addr >> 8) & 0xFF, 8)
+
+        state.memory[STACK_LOC + ARG_OFFSET + 2] = BitVecVal(length & 0xFF, 8)
+        state.memory[STACK_LOC + ARG_OFFSET + 3] = BitVecVal((length >> 8) & 0xFF, 8)
+
+        new_states = state.cpu.int_gets(state)
+
+        self.assertEqual(len(new_states), 1)
+
+        new_state = new_states[0]
+
+        inp_data = new_state.sym_input.data
+        inp_data_in_memory = new_state.memory[addr : addr + length]
+
+        self.assertEqual(len(inp_data), length)
+        self.assertEqual(len(inp_data_in_memory), length)
+        self.assertEqual(inp_data, inp_data_in_memory)
+
+
 if __name__ == '__main__':
     unittest.main()
