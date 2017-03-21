@@ -64,5 +64,27 @@ class TestGetsInterrupt(unittest.TestCase):
         self.assertEqual(inp_data, inp_data_in_memory)
 
 
+# Waiting on implementation:
+"""
+int_enabledep
+int_setpageperms
+int_rand
+int_hsm1check
+int_hsm2check
+"""
+
+class TestUnlockInterrupt(unittest.TestCase):
+
+    def test_interrupt_unlock(self):
+        state = blank_state()
+        new_states = state.cpu.int_unlock(state)
+
+        self.assertEqual(len(new_states), 1)
+
+        new_state = new_states[0]
+        
+        self.assertTrue(new_state.unlocked)
+
+
 if __name__ == '__main__':
     unittest.main()
