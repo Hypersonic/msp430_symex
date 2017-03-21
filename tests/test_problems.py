@@ -173,7 +173,9 @@ class TestSydney(unittest.TestCase):
 
         self.assertEqual(winning_input, b"%U@+DPo'")
 
+
 class TestHanoi(unittest.TestCase):
+    
     def test_hanoi(self):
         dump = \
             """0000:   0000 4400 0000 0000 0000 0000 0000 0000   ..D.............
