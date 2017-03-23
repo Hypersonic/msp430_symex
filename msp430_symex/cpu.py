@@ -705,6 +705,17 @@ class CPU:
 
     def step_jc(self, state, instruction):
         assert instruction.opcode == Opcode.JC
+
+        taken = state.clone()
+        not_taken = state.clone()
+        
+        taken.path.add(taken.cpu.registers[Register.R2] & BitVecVal(self.registers.mask_C, 16) == self.registers.mask_C)
+        taken.cpu.registers[Register.R0] = instruction.target
+
+        not_taken.path.add(not_taken.cpu.registers[Register.R2] & BitVecVal(self.registers.mask_C, 16) == 0)
+	# R0 is already pointing at the next instruction
+
+        return [taken, not_taken]
         raise NotImplementedError('jc instruction')
 
     def step_jn(self, state, instruction):
@@ -1075,11 +1086,97 @@ class CPU:
 
     def step_bit(self, state, instruction):
         assert instruction.opcode == Opcode.BIT
-        raise NotImplementedError('bit instruction')
+        st = state.clone() # our new state
+        
+        source_val = self.get_double_operand_source_value(st, instruction)
+
+        dest_loc, dest_type = \
+                self.get_double_operand_dest_location(st, instruction)
+
+        if dest_type == DestinationType.REGISTER:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = st.cpu.registers[dest_loc]
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = Extract(7, 0, st.cpu.registers[dest_loc])
+        elif dest_type == DestinationType.ADDRESS:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = Concat(st.memory[dest_loc+1], \
+                        st.memory[dest_loc])
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = st.memory[dest_loc]
+
+        # Flag Semantics from SLAU144J:
+        # N: Set if MSB of result is set, reset otherwise
+        # Z: Set if result is zero, reset otherwise
+        # C: Set if result is not zero, reset otherwise (.NOT. Zero)
+        # V: Reset
+        new_states = [st]
+
+        # N flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        high_set = lambda x: Extract(x.size()-1, x.size()-1, x) == 0b1
+        for state in set_states:
+            state.path.add(high_set(source_val & dest_val))
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+        for state in unset_states:
+            state.path.add(Not(high_set(source_val & dest_val)))
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+        new_states = set_states + unset_states
+
+        # Z flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        for state in set_states:
+            state.path.add((source_val & dest_val) == 0)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+        for state in unset_states:
+            state.path.add((source_val & dest_val) != 0)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+        new_states = set_states + unset_states
+
+        # C flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        for state in set_states:
+            state.path.add((source_val & dest_val) != 0)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+        for state in unset_states:
+            state.path.add((source_val & dest_val) == 0)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+        new_states = set_states + unset_states
+
+        # V flag
+        for state in new_states:
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+
+        return new_states
 
     def step_bic(self, state, instruction):
         assert instruction.opcode == Opcode.BIC
-        raise NotImplementedError('bic instruction')
+
+        st = state.clone() # our new state
+        
+        source_val = self.get_double_operand_source_value(st, instruction)
+
+        dest_loc, dest_type = \
+                self.get_double_operand_dest_location(st, instruction)
+
+        if dest_type == DestinationType.REGISTER:
+            if instruction.width == OperandWidth.WORD:
+                st.cpu.registers[dest_loc] &= ~source_val
+            elif instruction.width == OperandWidth.BYTE:
+                st.cpu.registers[dest_loc] &= \
+                        ~Concat( \
+                        BitVecVal(0, 8), source_val)
+        elif dest_type == DestinationType.ADDRESS:
+            if instruction.width == OperandWidth.WORD:
+                st.memory[dest_loc] &= ~Extract(7, 0, source_val)
+                st.memory[dest_loc+1] &= ~Extract(15, 8, source_val)
+            elif instruction.width == OperandWidth.BYTE:
+                st.memory[dest_loc] &= ~source_val
+
+        return [st]
 
     def step_bis(self, state, instruction):
         assert instruction.opcode == Opcode.BIS
@@ -1204,7 +1301,14 @@ class CPU:
         return [st]
 
     def int_hsm2check(self, state):
-        raise NotImplementedError('hsm2check interrupt')
+        st = state.clone()
+
+        # XXX: We don't actually check this right now, just return as if
+        # the answer was incorrect. Unless I run into a problem which has
+        # an actual intended solution of guessing the HSM pass, this is
+        # clearly never going to do anything.
+
+        return [st]
 
     def int_unlock(self, state):
         st = state.clone()
