@@ -45,7 +45,11 @@ class Path:
         """
         Get the predicate for this path, suitable to throw at Z3
         """
-        return z3.And(*self._path)
+        pred = z3.And(*self._path)
+        self._path = [pred]
+        self.__needs_copying = False
+        return pred
+
     
     def is_sat(self):
         if self.model: # if we have a cached model, no need to run a solver
@@ -239,7 +243,11 @@ class PathGroup:
             self.step()
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
             for state in self.active:
+                ip = state.cpu.registers['R0']
+                if z3.is_bv(ip):
+                    ip = z3.simplify(ip).as_long()
                 print('\t', state)
+                print('\t\tIP:', hex(ip))
                 print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
                 print('\t\tOutput:', repr(state.sym_output.dump(state)))
 
@@ -251,7 +259,7 @@ def start_path_group(memory_dump, start_ip, avoid=None):
     """
     mem = parse_mc_memory_dump(memory_dump)
     cpu = CPU()
-    cpu.registers[Register.R0] = start_ip
+    cpu.registers[Register.R0] = z3.BitVecVal(start_ip, 16)
     path = Path()
     inp = IO([])
     out = IO([])
