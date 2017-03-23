@@ -135,12 +135,17 @@ class State:
     def clone(self):
          return self.__class__(self.cpu.clone(), self.memory.clone(), self.path.clone(), self.sym_input.clone(), self.sym_output.clone(), self.unlocked)
 
+    def has_symbolic_ip(self):
+        ip = self.cpu.registers[Register.R0]
+        return z3.is_bv(ip) and not isinstance(z3.simplify(ip), z3.BitVecNumRef)
+
 
 class PathGroup:
     def __init__(self, active, avoid=None):
         self.active = set(active)
         self.unlocked = set() # states with the lock unlocked
         self.unsat = set()
+        self.symbolic = set() # paths with symbolic control data
         self.recently_added = set()
         self.tick_count = 0
         if isinstance(avoid, int):
@@ -153,6 +158,7 @@ class PathGroup:
         the unsat set
         """
         sat_states = set()
+        symbolic_states = set()
         unlocked_states = set()
         unsat_states = set()
         for state in self.active:
@@ -164,11 +170,17 @@ class PathGroup:
                     if z3.is_bv(v):
                         v = z3.simplify(v).as_long()
                     return v
-                ip = simplify(state.cpu.registers[Register.R0])
-                if ip in self.avoid:
-                    state.path.make_unsat()
+                try:
+                    ip = simplify(state.cpu.registers[Register.R0])
+                    if ip in self.avoid:
+                        state.path.make_unsat()
+                except AttributeError:
+                    pass # symbolic ip!! Ignore for now...
 
             if state.path.is_sat():
+                if state.has_symbolic_ip():
+                    symbolic_states.add(state)
+
                 if state.unlocked:
                     unlocked_states.add(state)
                 else:
@@ -180,6 +192,7 @@ class PathGroup:
         self.active = set(sat_states)
         self.unsat.update(unsat_states)
         self.unlocked.update(unlocked_states)
+        self.symbolic.update(symbolic_states)
 
     def select_next_state(self):
         """
@@ -210,6 +223,16 @@ class PathGroup:
         self.tick_count += 1
 
         self.prune() # prune unsat successors
+
+    def step_until_symbolic_ip(self):
+        while self.active and not self.symbolic:
+            self.step()
+            print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
+            for state in self.active:
+                print('\t', state)
+                print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
+                print('\t\tOutput:', repr(state.sym_output.dump(state)))
+
 
     def step_until_unlocked(self):
         while self.active and not self.unlocked:
