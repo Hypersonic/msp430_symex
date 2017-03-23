@@ -45,6 +45,8 @@ class Path:
         """
         Get the predicate for this path, suitable to throw at Z3
         """
+        # Cache the predicate, as testing has found this gives
+        # a 3-4x improvement to execution speed
         pred = z3.And(*self._path)
         self._path = [pred]
         self.__needs_copying = False
