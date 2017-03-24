@@ -23,7 +23,7 @@ RETI
 
 class TestJnzInstruction(unittest.TestCase):
 
-    def test_instruction_jnz(self):
+    def test_instruction_semantics_jnz(self):
         # jnz #0x1446
         raw = b'\x08\x21'
         ip = 0x1234
