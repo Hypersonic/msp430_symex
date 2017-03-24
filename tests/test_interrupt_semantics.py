@@ -85,9 +85,19 @@ class TestHSM1Interrupt(unittest.TestCase):
         self.assertEqual(len(new_states), 1)
 
 
-"""
-int_hsm2check
-"""
+class TestHSM2Interrupt(unittest.TestCase):
+
+    def test_hsm2_interrupt(self):
+        """
+        Because the HSM2 check can never pass, 
+        this just calls the HSM2 interrupt to make sure it does not error,
+        and returns 1 state.
+        """
+        state = blank_state()
+        new_states = state.cpu.int_hsm2check(state)
+
+        self.assertEqual(len(new_states), 1)
+
 
 class TestUnlockInterrupt(unittest.TestCase):
 
