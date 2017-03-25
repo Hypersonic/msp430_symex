@@ -716,7 +716,6 @@ class CPU:
 	# R0 is already pointing at the next instruction
 
         return [taken, not_taken]
-        raise NotImplementedError('jc instruction')
 
     def step_jn(self, state, instruction):
         assert instruction.opcode == Opcode.JN

@@ -75,6 +75,36 @@ class TestJzInstruction(unittest.TestCase):
 # TODO: Test these!!
 """
 JNC
+"""
+
+class TestJcInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_jc(self):
+        # jc #0x1446
+        raw = b'\x08\x2d'
+        ip = 0x1234
+
+        ins, ins_len = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+
+        expected_taken = 0x1446
+        expected_not_taken = 0x1236
+
+        new_states = state.cpu.step_jc(state, ins)
+
+        self.assertEqual(len(new_states), 2)
+
+        taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_taken]
+        not_taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_not_taken]
+
+        self.assertEqual(len(taken_states), 1)
+        self.assertEqual(len(not_taken_states), 1)
+
+
+#TODO: Test these!!
+"""
 JC
 JN
 JGE
