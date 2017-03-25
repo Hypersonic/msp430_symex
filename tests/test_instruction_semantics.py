@@ -1,6 +1,6 @@
 import unittest
 
-from z3 import simplify
+from z3 import simplify, BitVecVal
 
 from msp430_symex.state import State, blank_state
 from msp430_symex.code import decode_instruction
@@ -13,7 +13,30 @@ def intval(v):
 # TODO: Test these!!
 """
 RRC
-SWPB
+"""
+
+class TestSwpbInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_swpb(self):
+        # swpb r6
+        raw = b'\x86\x10'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R6'] = BitVecVal(0xdead, 16)
+
+        new_states = state.cpu.step_swpb(state, ins)
+        
+        self.assertEqual(len(new_states), 1)
+
+        new_state = new_states[0]
+        self.assertEqual(intval(new_state.cpu.registers['R6']), 0xadde)
+
+
+# TODO: Test these!!
+"""
 RRA
 SXT
 PUSH
