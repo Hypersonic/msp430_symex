@@ -128,9 +128,28 @@ class TestJmpInstruction(unittest.TestCase):
         new_ip = simplify(new_ip).as_long()
         self.assertEqual(new_ip, 0x446a)
 
+
+class TestMovInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_mov(self):
+        # mov #0xdead, r6
+        raw = b'\x36\x40\xad\xde'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+
+        new_states = state.cpu.step_mov(state, ins)
+
+        self.assertEqual(len(new_states), 1)
+        
+        new_state = new_states[0]
+        self.assertEqual(intval(new_state.cpu.registers['R6']), 0xdead)
+
+
 # TODO: Test these!!
 """
-MOV
 ADD
 ADDC
 SUBC
