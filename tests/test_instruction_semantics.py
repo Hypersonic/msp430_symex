@@ -105,7 +105,6 @@ class TestJcInstruction(unittest.TestCase):
 
 #TODO: Test these!!
 """
-JC
 JN
 JGE
 JL
