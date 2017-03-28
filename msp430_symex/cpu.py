@@ -1217,6 +1217,8 @@ class CPU:
         dest_loc, dest_type = \
                 self.get_double_operand_dest_location(st, instruction)
 
+        #FIXME: Set status bits according to SLAU144J 3.4.6.4
+
         if dest_type == DestinationType.REGISTER:
             if instruction.width == OperandWidth.WORD:
                 st.cpu.registers[dest_loc] &= source_val
