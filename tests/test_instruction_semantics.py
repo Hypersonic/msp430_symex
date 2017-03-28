@@ -202,9 +202,28 @@ class TestBicInstruction(unittest.TestCase):
         self.assertEqual(intval(new_state.cpu.registers['R6']), 0xd0a0)
 
 
+class TestBisInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_bis(self):
+        # bis #0x0f0f, r6
+        raw = b'\x36\xd0\x0f\x0f'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R6'] = BitVecVal(0xdead, 16)
+
+        new_states = state.cpu.step_bis(state, ins)
+
+        self.assertEqual(len(new_states), 1)
+        new_state = new_states[0]
+
+        self.assertEqual(intval(new_state.cpu.registers['R6']), 0xdfaf)
+        
+
 # TODO: Test these!!
 """
-BIS
 XOR
 AND
 """
