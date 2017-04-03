@@ -7,7 +7,7 @@ by length, and you can do whatever you want with the instructions.
 I recommend symbolically executing them! :)
 """
 from enum import Enum, unique
-from z3 import is_bv, BitVecVal
+from z3 import is_bv, simplify, BitVecVal
 
 
 @unique
@@ -182,7 +182,7 @@ def decode_instruction(address, data):
             not is_single_operand_instruction(x) and not is_jump_instruction(x)
 
     # turn a list of BitVecVals and ints into a list of ints
-    unBVV = lambda l: [x.as_long() if is_bv(x) else x for x in data]
+    unBVV = lambda l: [simplify(x).as_long() if is_bv(x) else x for x in data]
 
     data = unBVV(data)
     instruction = int.from_bytes(data[:2], 'little')
@@ -384,7 +384,7 @@ def decode_double_operand_instruction(address, data):
     }
     def get_opcode(instruction):
         raw = (instruction >> 12) & 0b1111
-        assert raw in opcodes, 'Invalid opcode for double-operand instruction: {}'.format(raw)
+        assert raw in opcodes, 'Invalid opcode for double-operand instruction: {} @ {}'.format(raw, address)
         return opcodes[raw]
 
     registers = {
