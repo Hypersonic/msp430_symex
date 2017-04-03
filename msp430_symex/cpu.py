@@ -1114,38 +1114,38 @@ class CPU:
         set_states = [x for x in new_states]
         unset_states = [x.clone() for x in new_states]
         high_set = lambda x: Extract(x.size()-1, x.size()-1, x) == 0b1
-        for state in set_states:
-            state.path.add(high_set(source_val & dest_val))
+        for st in set_states:
+            st.path.add(high_set(source_val & dest_val))
             st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
-        for state in unset_states:
-            state.path.add(Not(high_set(source_val & dest_val)))
+        for st in unset_states:
+            st.path.add(Not(high_set(source_val & dest_val)))
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
         new_states = set_states + unset_states
 
         # Z flag
         set_states = [x for x in new_states]
         unset_states = [x.clone() for x in new_states]
-        for state in set_states:
-            state.path.add((source_val & dest_val) == 0)
+        for st in set_states:
+            st.path.add((source_val & dest_val) == 0)
             st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for state in unset_states:
-            state.path.add((source_val & dest_val) != 0)
+        for st in unset_states:
+            st.path.add((source_val & dest_val) != 0)
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
         new_states = set_states + unset_states
 
         # C flag
         set_states = [x for x in new_states]
         unset_states = [x.clone() for x in new_states]
-        for state in set_states:
-            state.path.add((source_val & dest_val) != 0)
+        for st in set_states:
+            st.path.add((source_val & dest_val) != 0)
             st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for state in unset_states:
-            state.path.add((source_val & dest_val) == 0)
+        for st in unset_states:
+            st.path.add((source_val & dest_val) == 0)
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
         new_states = set_states + unset_states
 
         # V flag
-        for state in new_states:
+        for st in new_states:
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
 
         return new_states
