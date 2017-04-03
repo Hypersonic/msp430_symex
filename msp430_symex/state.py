@@ -50,6 +50,9 @@ class Path:
         # Cache the predicate, as testing has found this gives
         # a 3-4x improvement to execution speed
         pred = z3.And(*self._path)
+        # simplifying here makes things a bit (~5-10%) faster...
+        # strange that Z3 doesn't do that internally
+        pred = z3.simplify(pred)
         self._path = [pred]
         self.__needs_copying = False
         return pred
