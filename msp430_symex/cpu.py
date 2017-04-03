@@ -641,7 +641,6 @@ class CPU:
         st = state.clone()
 
         target = self.get_single_operand_value(st, instruction)
-
         self.push(st, target)
 
         return [st]
