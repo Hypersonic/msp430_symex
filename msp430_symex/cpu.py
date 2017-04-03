@@ -1204,7 +1204,95 @@ class CPU:
 
     def step_xor(self, state, instruction):
         assert instruction.opcode == Opcode.XOR
-        raise NotImplementedError('xor instruction')
+
+        st = state.clone()
+
+        source_val = self.get_double_operand_source_value(st, instruction)
+        dest_loc, dest_type = \
+                self.get_double_operand_dest_location(st, instruction)
+
+        if dest_type == DestinationType.REGISTER:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = st.cpu.registers[dest_loc]
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = Extract(7, 0, st.cpu.registers[dest_loc])
+        elif dest_type == DestinationType.ADDRESS:
+            if instruction.width == OperandWidth.WORD:
+                dest_val = Concat(st.memory[dest_loc+1], \
+                        st.memory[dest_loc])
+            elif instruction.width == OperandWidth.BYTE:
+                dest_val = st.memory[dest_loc]
+
+        # Flags according to SLAU144J:
+	# N: Set if result MSB is set, reset if not set
+	# Z: Set if result is zero, reset otherwise
+	# C: Set if result is not zero, reset otherwise ( = .NOT. Zero)
+	# V: Set if both operands are negative
+        new_states = [st]
+
+        # N flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
+        for st in set_states:
+            st.path.add(highest_bit(source_val ^ dest_val) == 1)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+        for st in unset_states:
+            st.path.add(highest_bit(source_val ^ dest_val) == 0)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+        new_states = set_states + unset_states
+
+        # Z flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        for st in set_states:
+            st.path.add((source_val ^ dest_val) == 0)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+        for st in unset_states:
+            st.path.add((source_val ^ dest_val) != 0)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+        new_states = set_states + unset_states
+
+        # C flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        for st in set_states:
+            st.path.add((source_val ^ dest_val) != 0)
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
+        for st in unset_states:
+            st.path.add((source_val ^ dest_val) == 0)
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
+        new_states = set_states + unset_states
+
+        # V flag
+        set_states = [x for x in new_states]
+        unset_states = [x.clone() for x in new_states]
+        for st in set_states:
+            st.path.add(And(source_val < 0, dest_val < 0))
+            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
+        for st in unset_states:
+            st.path.add(Not(And(source_val < 0, dest_val < 0)))
+            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+        new_states = set_states + unset_states
+
+
+        res_val = source_val ^ dest_val
+        for st in new_states:
+            if dest_type == DestinationType.REGISTER:
+                if instruction.width == OperandWidth.WORD:
+                    st.cpu.registers[dest_loc] = res_val
+                elif instruction.width == OperandWidth.BYTE:
+                    st.cpu.registers[dest_loc] = \
+                            Concat( \
+                            BitVecVal(0, 8), res_val)
+            elif dest_type == DestinationType.ADDRESS:
+                if instruction.width == OperandWidth.WORD:
+                    st.memory[dest_loc] = Extract(7, 0, res_val)
+                    st.memory[dest_loc+1] = Extract(15, 8, res_val)
+                elif instruction.width == OperandWidth.BYTE:
+                    st.memory[dest_loc] = res_val
+
+        return new_states
 
     def step_and(self, state, instruction):
         assert instruction.opcode == Opcode.AND
