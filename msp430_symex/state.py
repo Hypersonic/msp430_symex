@@ -24,6 +24,7 @@ class Path:
             self._path = paths
         self.__needs_copying = False
         self.model = None
+        self.sat = None # unknown
 
     def add(self, condition):
         """
@@ -34,6 +35,7 @@ class Path:
             self.__needs_copying = False
         self._path.append(condition)
         self.model = None
+        self.sat = None
 
     def make_unsat(self):
         """
@@ -52,13 +54,14 @@ class Path:
         self.__needs_copying = False
         return pred
 
-    
     def is_sat(self):
-        if self.model: # if we have a cached model, no need to run a solver
-            return True
+        # if we've cached whether we're sat, just return that
+        if self.sat is not None:
+            return self.sat
         solver = z3.Solver()
         solver.add(self.pred())
         is_sat = solver.check() == z3.sat
+        self.sat = is_sat
         if is_sat:
             self.model = solver.model()
         return is_sat
