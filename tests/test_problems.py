@@ -236,5 +236,60 @@ fff0:   4444 4444 4444 4444 4444 4444 4444 0044   DDDDDDDDDDDDDD.D"""
         self.assertEqual(len(winning_input), 17)
         self.assertEqual(winning_input[16], 0x34) # overflow with correct value
 
+
+class TestReykjavik(unittest.TestCase):
+    
+    def test_reykjavik(self):
+# Concrete running until the first input will help a lot here
+# solving once we're in the unpacked area is trivial
+        dump = \
+"""0000:   0000 4400 0000 0000 0000 0000 0000 0000   ..D.............
+0010:   *
+4400:   3140 0044 1542 5c01 75f3 35d0 085a 3f40   1@.D.B\.u.5..Z?@
+4410:   7c00 0f93 0724 8245 5c01 2f83 9f4f 3845   |....$.E\./..O8E
+4420:   0024 f923 3f40 0001 0f93 0624 8245 5c01   .$.#?@.....$.E\.
+4430:   1f83 cf43 7c24 fa23 3e40 2045 0f4e 3e40   ...C|$.#>@ E.N>@
+4440:   f800 3f40 0024 b012 8644 b012 0024 0f43   ..?@.$...D...$.C
+4450:   32d0 f000 fd3f 3040 3645 1e41 0200 0212   2....?0@6E.A....
+4460:   0f4e 8f10 024f 32d0 0080 b012 1000 3241   .N...O2.......2A
+4470:   3041 5468 6973 4973 5365 6375 7265 5269   0AThisIsSecureRi
+4480:   6768 743f 0000 0b12 0a12 0912 0812 0d43   ght?...........C
+4490:   cd4d 7c24 1d53 3d90 0001 fa23 3c40 7c24   .M|$.S=....#<@|$
+44a0:   0d43 0b4d 684c 4a48 0d5a 0a4b 3af0 0f00   .C.MhLJH.Z.K:...
+44b0:   5a4a 7244 8a11 0d5a 3df0 ff00 0a4d 3a50   ZJrD...Z=....M:P
+44c0:   7c24 694a ca48 0000 cc49 0000 1b53 1c53   |$iJ.H...I...S.S
+44d0:   3b90 0001 e723 0b43 0c4b 183c 1c53 3cf0   ;....#.C.K.<.S<.
+44e0:   ff00 0a4c 3a50 7c24 684a 4b58 4b4b 0d4b   ...L:P|$hJKXKK.K
+44f0:   3d50 7c24 694d cd48 0000 ca49 0000 695d   =P|$iM.H...I..i]
+4500:   4d49 dfed 7c24 0000 1f53 3e53 0e93 e623   MI..|$...S>S...#
+4510:   3841 3941 3a41 3b41 3041 0e4f 0f4e 3041   8A9A:A;A0A.O.N0A
+4520:   7768 6174 2773 2074 6865 2070 6173 7377   what's the passw
+4530:   6f72 643f 0000 0013 4c85 1bc5 80df e9bf   ord?....L.......
+4540:   3864 2bc6 4277 62b8 c3ca d965 a40a c1a3   8d+.Bwb....e....
+4550:   bbd1 a6ea b3eb 180f 78af ea7e 5c8e c695   ........x..~\...
+4560:   cb6f b8e9 333c 5aa1 5cee 906b d1aa a1c3   .o..3<Z.\..k....
+4570:   a986 8d14 08a5 a22c baa5 1957 192d abe1   .......,...W.-..
+4580:   66b9 da1d 4a08 e95c d919 8069 07a5 ef01   f...J..\...i....
+4590:   caa2 a30d f344 815e 3e10 e765 2bc8 2837   .....D.^>..e+.(7
+45a0:   abad ab3f 8cfa 754d 8ff0 b083 6b3e b3c7   ...?..uM....k>..
+45b0:   aefe b409 0000 0000 0000 0000 0000 0000   ................
+45c0:   *
+ff80:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ff90:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ffa0:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ffb0:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ffc0:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ffd0:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+ffe0:   5644 5644 5644 5644 5644 5644 5644 5644   VDVDVDVDVDVDVDVD
+fff0:   5644 5644 5644 5644 5644 5644 5644 0044   VDVDVDVDVDVDVD.D"""
+        #TODO: automatically find avoid address via CFG
+        pg = start_path_group(dump, 0x4400, avoid=0x4450)
+
+        pg.step_until_unlocked()
+        unlocked_state = list(pg.unlocked)[0]
+        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+
+        self.assertEqual(winning_input, b'\xbd\xf3')
+
 if __name__ == '__main__':
     unittest.main()
