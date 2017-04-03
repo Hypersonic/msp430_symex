@@ -75,6 +75,7 @@ class Path:
         self.__needs_copying = True
         # pass along our model so sat checks quick-exit as long as nothing is added
         new_path.model = self.model
+        new_path.sat = self.sat
         return new_path
 
     def __repr__(self):
