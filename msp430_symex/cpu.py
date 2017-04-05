@@ -562,11 +562,11 @@ class CPU:
 
         return dest_loc, dest_type
 
-    def step_rrc(self, state, instruction):
+    def step_rrc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.RRC
         raise NotImplementedError('rrc instruction')
 
-    def step_swpb(self, state, instruction):
+    def step_swpb(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.SWPB
 
         st = state.clone()
@@ -582,11 +582,11 @@ class CPU:
 
         return [st]
 
-    def step_rra(self, state, instruction):
+    def step_rra(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.RRA
         raise NotImplementedError('rra instruction')
 
-    def step_sxt(self, state, instruction):
+    def step_sxt(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.SXT
 
         st = state.clone()
@@ -636,7 +636,7 @@ class CPU:
 
         return new_states
 
-    def step_push(self, state, instruction):
+    def step_push(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.PUSH
 
         st = state.clone()
@@ -646,7 +646,7 @@ class CPU:
 
         return [st]
 
-    def step_call(self, state, instruction):
+    def step_call(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.CALL
 
         target = self.get_single_operand_value(state, instruction)
@@ -667,11 +667,11 @@ class CPU:
 
         return [st]
 
-    def step_reti(self, state, instruction):
+    def step_reti(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.RETI
         raise NotImplementedError('reti instruction')
 
-    def step_jnz(self, state, instruction):
+    def step_jnz(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JNZ
 
         taken = state.clone()
@@ -685,7 +685,7 @@ class CPU:
 
         return [taken, not_taken]
 
-    def step_jz(self, state, instruction):
+    def step_jz(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JZ
 
         taken = state.clone()
@@ -699,11 +699,11 @@ class CPU:
 
         return [taken, not_taken]
 
-    def step_jnc(self, state, instruction):
+    def step_jnc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JNC
         raise NotImplementedError('jnc instruction')
 
-    def step_jc(self, state, instruction):
+    def step_jc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JC
 
         taken = state.clone()
@@ -717,19 +717,19 @@ class CPU:
 
         return [taken, not_taken]
 
-    def step_jn(self, state, instruction):
+    def step_jn(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JN
         raise NotImplementedError('jn instruction')
 
-    def step_jge(self, state, instruction):
+    def step_jge(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JGE
         raise NotImplementedError('jge instruction')
 
-    def step_jl(self, state, instruction):
+    def step_jl(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JL
         raise NotImplementedError('jl instruction')
 
-    def step_jmp(self, state, instruction):
+    def step_jmp(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JMP
 
         st = state.clone()
@@ -738,7 +738,7 @@ class CPU:
         
         return [st]
 
-    def step_mov(self, state, instruction):
+    def step_mov(self, state, instruction, enable_unsound_optimizations=True):
         """
         MOV instruction.
 
@@ -769,7 +769,7 @@ class CPU:
 
         return [st]
 
-    def step_add(self, state, instruction):
+    def step_add(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.ADD
 
         st = state.clone()
@@ -790,6 +790,23 @@ class CPU:
             elif instruction.width == OperandWidth.BYTE:
                 dest_val = st.memory[dest_loc]
 
+        if enable_unsound_optimizations:
+            # lookahead 6 instruction, and compute relevant
+            # flags from the kind of jump
+            insns = state.decode_some_instructions(instruction.address, 6)
+            flags_needed = set()
+            for insn in insns:
+                if insn.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('N')
+                if insn.opcode in {Opcode.JNZ, Opcode.JZ}:
+                    flags_needed.add('Z')
+                if insn.opcode in {Opcode.JNC, Opcode.JC}:
+                    flags_needed.add('C')
+                if insn.opcode in {Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('V')
+        else:
+            flags_needed = {'N', 'Z', 'C', 'V'}
+
 
         # From SLAU144J, the way all the flags are set:
         # N: Set if src + dest < 0, reset otherwise
@@ -802,57 +819,61 @@ class CPU:
         new_states = [st]
 
         # N bit
-        set_states = [x for x in new_states] # N bit set
-        unset_states = [x.clone() for x in new_states] # N bit cleared
-        for st in set_states:
-            st.path.add(source_val + dest_val < 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
-        for st in unset_states:
-            st.path.add(source_val + dest_val >= 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
-        new_states = set_states + unset_states
+        if 'N' in flags_needed:
+            set_states = [x for x in new_states] # N bit set
+            unset_states = [x.clone() for x in new_states] # N bit cleared
+            for st in set_states:
+                st.path.add(source_val + dest_val < 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+            for st in unset_states:
+                st.path.add(source_val + dest_val >= 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+            new_states = set_states + unset_states
 
         # Z bit
-        set_states = [x for x in new_states] # N bit set
-        unset_states = [x.clone() for x in new_states] # N bit cleared
-        for st in set_states:
-            st.path.add(source_val + dest_val == 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for st in unset_states:
-            st.path.add(source_val + dest_val != 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
-        new_states = set_states + unset_states
+        if 'Z' in flags_needed:
+            set_states = [x for x in new_states] # N bit set
+            unset_states = [x.clone() for x in new_states] # N bit cleared
+            for st in set_states:
+                st.path.add(source_val + dest_val == 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+            for st in unset_states:
+                st.path.add(source_val + dest_val != 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+            new_states = set_states + unset_states
 
         # C bit
         # basically we check if the highest bit transitioned from a 1 to a 0
-        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
-        did_overflow = And(highest_bit(dest_val) == 1, \
-                           highest_bit(dest_val - source_val) == 0)
-        set_states = [x for x in new_states] # C bit set
-        unset_states = [x.clone() for x in new_states] # C bit cleared
-        for st in set_states:
-            st.path.add(did_overflow)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
-        for st in unset_states:
-            st.path.add(Not(did_overflow))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
-        new_states = set_states + unset_states
+        if 'C' in flags_needed:
+            highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
+            did_overflow = And(highest_bit(dest_val) == 1, \
+                               highest_bit(dest_val - source_val) == 0)
+            set_states = [x for x in new_states] # C bit set
+            unset_states = [x.clone() for x in new_states] # C bit cleared
+            for st in set_states:
+                st.path.add(did_overflow)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
+            for st in unset_states:
+                st.path.add(Not(did_overflow))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
+            new_states = set_states + unset_states
 
         # V bit
         # implemented as in the table above...
-        set_states = [x for x in new_states] # N bit set
-        unset_states = [x.clone() for x in new_states] # N bit cleared
-        for st in set_states:
-            cond_a = And(source_val > 0, dest_val > 0, source_val + dest_val < 0)
-            cond_b = And(source_val < 0, dest_val < 0, source_val + dest_val > 0)
-            st.path.add(Or(cond_a, cond_b))
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
-        for st in unset_states:
-            cond_a = And(source_val > 0, dest_val > 0, source_val + dest_val < 0)
-            cond_b = And(source_val < 0, dest_val < 0, source_val + dest_val > 0)
-            st.path.add(Not(Or(cond_a, cond_b)))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
-        new_states = set_states + unset_states
+        if 'V' in flags_needed:
+            set_states = [x for x in new_states] # N bit set
+            unset_states = [x.clone() for x in new_states] # N bit cleared
+            for st in set_states:
+                cond_a = And(source_val > 0, dest_val > 0, source_val + dest_val < 0)
+                cond_b = And(source_val < 0, dest_val < 0, source_val + dest_val > 0)
+                st.path.add(Or(cond_a, cond_b))
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
+            for st in unset_states:
+                cond_a = And(source_val > 0, dest_val > 0, source_val + dest_val < 0)
+                cond_b = And(source_val < 0, dest_val < 0, source_val + dest_val > 0)
+                st.path.add(Not(Or(cond_a, cond_b)))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+            new_states = set_states + unset_states
 
         # set dest location to the sum in all states
         for st in new_states:
@@ -876,15 +897,15 @@ class CPU:
 
         return new_states
 
-    def step_addc(self, state, instruction):
+    def step_addc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.ADDC
         raise NotImplementedError('addc instruction')
 
-    def step_subc(self, state, instruction):
+    def step_subc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.SUBC
         raise NotImplementedError('subc instruction')
 
-    def step_sub(self, state, instruction):
+    def step_sub(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.SUB
         st = state.clone()
 
@@ -905,6 +926,23 @@ class CPU:
                 dest_val = st.memory[dest_loc]
 
 
+        if enable_unsound_optimizations:
+            # lookahead 6 instruction, and compute relevant
+            # flags from the kind of jump
+            insns = state.decode_some_instructions(instruction.address, 6)
+            flags_needed = set()
+            for insn in insns:
+                if insn.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('N')
+                if insn.opcode in {Opcode.JNZ, Opcode.JZ}:
+                    flags_needed.add('Z')
+                if insn.opcode in {Opcode.JNC, Opcode.JC}:
+                    flags_needed.add('C')
+                if insn.opcode in {Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('V')
+        else:
+            flags_needed = {'N', 'Z', 'C', 'V'}
+
         # From SLAU144J, the way all the flags are set:
         # N: Set if src > dest, reset if src <= dest
         # Z: Set if src = dest, reset if src != dest
@@ -915,59 +953,63 @@ class CPU:
         new_states = [st]
 
         # N bit
-        set_states = [x for x in new_states] # N bit set
-        unset_states = [x.clone() for x in new_states] # N bit cleared
-        for st in set_states:
-            st.path.add(source_val > dest_val)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
-        for st in unset_states:
-            st.path.add(source_val <= dest_val)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
-        new_states = set_states + unset_states
+        if 'N' in flags_needed:
+            set_states = [x for x in new_states] # N bit set
+            unset_states = [x.clone() for x in new_states] # N bit cleared
+            for st in set_states:
+                st.path.add(source_val > dest_val)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+            for st in unset_states:
+                st.path.add(source_val <= dest_val)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+            new_states = set_states + unset_states
 
         # Z bit
-        set_states = [x for x in new_states] # Z bit set
-        unset_states = [x.clone() for x in new_states] # Z bit cleared
-        for st in set_states:
-            st.path.add(source_val == dest_val)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for st in unset_states:
-            st.path.add(source_val != dest_val)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
-        new_states = set_states + unset_states
+        if 'Z' in flags_needed:
+            set_states = [x for x in new_states] # Z bit set
+            unset_states = [x.clone() for x in new_states] # Z bit cleared
+            for st in set_states:
+                st.path.add(source_val == dest_val)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+            for st in unset_states:
+                st.path.add(source_val != dest_val)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+            new_states = set_states + unset_states
 
 
         # C bit
         # basically we check if the highest bit transitioned from a 1 to a 0
-        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
-        did_overflow = And(highest_bit(dest_val) == 1, \
-                           highest_bit(dest_val - source_val) == 0)
-        set_states = [x for x in new_states] # C bit set
-        unset_states = [x.clone() for x in new_states] # C bit cleared
-        for st in set_states:
-            st.path.add(did_overflow)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
-        for st in unset_states:
-            st.path.add(Not(did_overflow))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
-        new_states = set_states + unset_states
+        if 'C' in flags_needed:
+            highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
+            did_overflow = And(highest_bit(dest_val) == 1, \
+                               highest_bit(dest_val - source_val) == 0)
+            set_states = [x for x in new_states] # C bit set
+            unset_states = [x.clone() for x in new_states] # C bit cleared
+            for st in set_states:
+                st.path.add(did_overflow)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
+            for st in unset_states:
+                st.path.add(Not(did_overflow))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
+            new_states = set_states + unset_states
         
         # V bit
-        set_states = [x for x in new_states] # V bit set
-        unset_states = [x.clone() for x in new_states] # V bit cleared
-        for st in set_states:
-            # following conditions above...
-            condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
-            condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
-            st.path.add(Or(condA, condB))
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
-        for st in unset_states:
-            # following conditions above...
-            condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
-            condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
-            st.path.add(Not(Or(condA, condB)))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
-        new_states = set_states + unset_states
+        if 'V' in flags_needed:
+            set_states = [x for x in new_states] # V bit set
+            unset_states = [x.clone() for x in new_states] # V bit cleared
+            for st in set_states:
+                # following conditions above...
+                condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
+                condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+                st.path.add(Or(condA, condB))
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
+            for st in unset_states:
+                # following conditions above...
+                condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
+                condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+                st.path.add(Not(Or(condA, condB)))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+            new_states = set_states + unset_states
 
         # set dest location to the difference in all states
         for st in new_states:
@@ -1014,21 +1056,19 @@ class CPU:
 
 
         if enable_unsound_optimizations:
-            # lookahead one instruction, and compute relevant
+            # lookahead 6 instruction, and compute relevant
             # flags from the kind of jump
-            next_instruction_ip = instruction.address + len(instruction.raw)
-            next_instruction, _ = decode_instruction(next_instruction_ip, \
-                    state.memory[next_instruction_ip : next_instruction_ip + 6])
-
+            insns = state.decode_some_instructions(instruction.address, 6)
             flags_needed = set()
-            if next_instruction.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
-                flags_needed.add('N')
-            if next_instruction.opcode in {Opcode.JNZ, Opcode.JZ}:
-                flags_needed.add('Z')
-            if next_instruction.opcode in {Opcode.JNC, Opcode.JC}:
-                flags_needed.add('C')
-            if next_instruction.opcode in {Opcode.JGE, Opcode.JL}:
-                flags_needed.add('V')
+            for insn in insns:
+                if insn.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('N')
+                if insn.opcode in {Opcode.JNZ, Opcode.JZ}:
+                    flags_needed.add('Z')
+                if insn.opcode in {Opcode.JNC, Opcode.JC}:
+                    flags_needed.add('C')
+                if insn.opcode in {Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('V')
         else:
             flags_needed = {'N', 'Z', 'C', 'V'}
 
@@ -1103,11 +1143,11 @@ class CPU:
 
         return new_states
 
-    def step_dadd(self, state, instruction):
+    def step_dadd(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.DADD
         raise NotImplementedError('dadd instruction')
 
-    def step_bit(self, state, instruction):
+    def step_bit(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.BIT
         st = state.clone() # our new state
         
@@ -1128,6 +1168,23 @@ class CPU:
             elif instruction.width == OperandWidth.BYTE:
                 dest_val = st.memory[dest_loc]
 
+        if enable_unsound_optimizations:
+            # lookahead 6 instruction, and compute relevant
+            # flags from the kind of jump
+            insns = state.decode_some_instructions(instruction.address, 6)
+            flags_needed = set()
+            for insn in insns:
+                if insn.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('N')
+                if insn.opcode in {Opcode.JNZ, Opcode.JZ}:
+                    flags_needed.add('Z')
+                if insn.opcode in {Opcode.JNC, Opcode.JC}:
+                    flags_needed.add('C')
+                if insn.opcode in {Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('V')
+        else:
+            flags_needed = {'N', 'Z', 'C', 'V'}
+
         # Flag Semantics from SLAU144J:
         # N: Set if MSB of result is set, reset otherwise
         # Z: Set if result is zero, reset otherwise
@@ -1136,46 +1193,49 @@ class CPU:
         new_states = [st]
 
         # N flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        high_set = lambda x: Extract(x.size()-1, x.size()-1, x) == 0b1
-        for st in set_states:
-            st.path.add(high_set(source_val & dest_val))
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
-        for st in unset_states:
-            st.path.add(Not(high_set(source_val & dest_val)))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
-        new_states = set_states + unset_states
+        if 'N' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            high_set = lambda x: Extract(x.size()-1, x.size()-1, x) == 0b1
+            for st in set_states:
+                st.path.add(high_set(source_val & dest_val))
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+            for st in unset_states:
+                st.path.add(Not(high_set(source_val & dest_val)))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+            new_states = set_states + unset_states
 
         # Z flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        for st in set_states:
-            st.path.add((source_val & dest_val) == 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for st in unset_states:
-            st.path.add((source_val & dest_val) != 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
-        new_states = set_states + unset_states
+        if 'Z' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            for st in set_states:
+                st.path.add((source_val & dest_val) == 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+            for st in unset_states:
+                st.path.add((source_val & dest_val) != 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+            new_states = set_states + unset_states
 
         # C flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        for st in set_states:
-            st.path.add((source_val & dest_val) != 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for st in unset_states:
-            st.path.add((source_val & dest_val) == 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
-        new_states = set_states + unset_states
+        if 'C' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            for st in set_states:
+                st.path.add((source_val & dest_val) != 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+            for st in unset_states:
+                st.path.add((source_val & dest_val) == 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+            new_states = set_states + unset_states
 
-        # V flag
+        # V flag (always set)
         for st in new_states:
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
 
         return new_states
 
-    def step_bic(self, state, instruction):
+    def step_bic(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.BIC
 
         st = state.clone() # our new state
@@ -1201,7 +1261,7 @@ class CPU:
 
         return [st]
 
-    def step_bis(self, state, instruction):
+    def step_bis(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.BIS
 
         st = state.clone() # our new state
@@ -1227,7 +1287,7 @@ class CPU:
 
         return [st]
 
-    def step_xor(self, state, instruction):
+    def step_xor(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.XOR
 
         st = state.clone()
@@ -1248,6 +1308,23 @@ class CPU:
             elif instruction.width == OperandWidth.BYTE:
                 dest_val = st.memory[dest_loc]
 
+        if enable_unsound_optimizations:
+            # lookahead 6 instruction, and compute relevant
+            # flags from the kind of jump
+            insns = state.decode_some_instructions(instruction.address, 6)
+            flags_needed = set()
+            for insn in insns:
+                if insn.opcode in {Opcode.JN, Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('N')
+                if insn.opcode in {Opcode.JNZ, Opcode.JZ}:
+                    flags_needed.add('Z')
+                if insn.opcode in {Opcode.JNC, Opcode.JC}:
+                    flags_needed.add('C')
+                if insn.opcode in {Opcode.JGE, Opcode.JL}:
+                    flags_needed.add('V')
+        else:
+            flags_needed = {'N', 'Z', 'C', 'V'}
+
         # Flags according to SLAU144J:
 	# N: Set if result MSB is set, reset if not set
 	# Z: Set if result is zero, reset otherwise
@@ -1256,49 +1333,53 @@ class CPU:
         new_states = [st]
 
         # N flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
-        for st in set_states:
-            st.path.add(highest_bit(source_val ^ dest_val) == 1)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
-        for st in unset_states:
-            st.path.add(highest_bit(source_val ^ dest_val) == 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
-        new_states = set_states + unset_states
+        if 'N' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
+            for st in set_states:
+                st.path.add(highest_bit(source_val ^ dest_val) == 1)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_N, 16)
+            for st in unset_states:
+                st.path.add(highest_bit(source_val ^ dest_val) == 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_N, 16)
+            new_states = set_states + unset_states
 
         # Z flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        for st in set_states:
-            st.path.add((source_val ^ dest_val) == 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
-        for st in unset_states:
-            st.path.add((source_val ^ dest_val) != 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
-        new_states = set_states + unset_states
+        if 'Z' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            for st in set_states:
+                st.path.add((source_val ^ dest_val) == 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+            for st in unset_states:
+                st.path.add((source_val ^ dest_val) != 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+            new_states = set_states + unset_states
 
         # C flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        for st in set_states:
-            st.path.add((source_val ^ dest_val) != 0)
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
-        for st in unset_states:
-            st.path.add((source_val ^ dest_val) == 0)
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
-        new_states = set_states + unset_states
+        if 'C' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            for st in set_states:
+                st.path.add((source_val ^ dest_val) != 0)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
+            for st in unset_states:
+                st.path.add((source_val ^ dest_val) == 0)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
+            new_states = set_states + unset_states
 
         # V flag
-        set_states = [x for x in new_states]
-        unset_states = [x.clone() for x in new_states]
-        for st in set_states:
-            st.path.add(And(source_val < 0, dest_val < 0))
-            st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
-        for st in unset_states:
-            st.path.add(Not(And(source_val < 0, dest_val < 0)))
-            st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
-        new_states = set_states + unset_states
+        if 'V' in flags_needed:
+            set_states = [x for x in new_states]
+            unset_states = [x.clone() for x in new_states]
+            for st in set_states:
+                st.path.add(And(source_val < 0, dest_val < 0))
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
+            for st in unset_states:
+                st.path.add(Not(And(source_val < 0, dest_val < 0)))
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+            new_states = set_states + unset_states
 
 
         res_val = source_val ^ dest_val
@@ -1319,7 +1400,7 @@ class CPU:
 
         return new_states
 
-    def step_and(self, state, instruction):
+    def step_and(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.AND
 
         st = state.clone() # our new state

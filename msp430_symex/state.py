@@ -152,6 +152,34 @@ class State:
         ip = self.cpu.registers[Register.R0]
         return z3.is_bv(ip) and not isinstance(z3.simplify(ip), z3.BitVecNumRef)
 
+    def decode_some_instructions(self, ip, n):
+        """
+        Decodes **up to** :n: instructions, starting at :ip:
+
+        Stops at ret instructions
+        """
+
+        # ret == mov @sp+, pc, so we have to do this huge thing
+        is_ret = lambda insn: insn.opcode == Opcode.RETI or \
+                (insn.opcode == Opcode.MOV and \
+                insn.source_addressing_mode == AddressingMode.AUTOINCREMENT and \
+                insn.source_register == Register.R1 and \
+                insn.dest_register == Register.R0)
+
+        instructions = []
+        for _ in range(n):
+            raw_instruction = self.memory[ip : ip + 6]
+            instruction, instruction_length = \
+                    decode_instruction(ip, raw_instruction)
+            
+            instructions.append(instruction)
+            ip += instruction_length
+            # stop analyzing on ret since we don't know what
+            # could be past there (end of memory, random data)
+            if is_ret(instruction):
+                break
+        return instructions
+
 
 class PathGroup:
     def __init__(self, active, avoid=None):
@@ -242,9 +270,9 @@ class PathGroup:
             self.step()
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
             for state in self.active:
-                print('\t', state)
                 print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
                 print('\t\tOutput:', repr(state.sym_output.dump(state)))
+                #print('\t\tPred:', state.path.pred())
 
 
     def step_until_unlocked(self):
