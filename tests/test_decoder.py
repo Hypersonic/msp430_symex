@@ -12,7 +12,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\xb0\x12\x58\x45'
         ip = 0x4458
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.CALL)
@@ -27,7 +27,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\x00\x13'
         ip = 0x4484
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.RETI)
@@ -42,7 +42,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\x90\x12\x32\x12'
         ip = 0xc0de
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
 
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
@@ -60,7 +60,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\x92\x12\x34\x12'
         ip = 0xc0de
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
 
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
@@ -77,7 +77,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\x30\x12\x0a\x00'
         ip = 0x4472
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.PUSH)
@@ -92,7 +92,7 @@ class TestSingleOperandDecode(unittest.TestCase):
         raw = b'\x23\x12'
         ip = 0x454c
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, SingleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.PUSH)
@@ -109,7 +109,7 @@ class TestJmpDecode(unittest.TestCase):
         raw = b'\x06\x3c'
         ip = 0x445c
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JMP)
@@ -122,7 +122,7 @@ class TestJmpDecode(unittest.TestCase):
         raw = b'\xf9\x23' # should be jnz #0x4416
         ip = 0x4422
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JNZ)
@@ -135,7 +135,7 @@ class TestJmpDecode(unittest.TestCase):
         raw = b'\x06\x24' # should be jz #0x4438
         ip = 0x442a
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, JumpInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.JZ)
@@ -151,7 +151,7 @@ class TestDoubleOperandDecode(unittest.TestCase):
         raw = b'\x11\x40\xfe\x23'
         ip = 0xc0de
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, DoubleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.MOV)
@@ -169,7 +169,7 @@ class TestDoubleOperandDecode(unittest.TestCase):
         raw = b'\x0b\x4f' # should be mov r15, r11
         ip = 0x455a
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, DoubleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.MOV)
@@ -185,7 +185,7 @@ class TestDoubleOperandDecode(unittest.TestCase):
         raw = b'\x5f\x44\xfc\xff' # should be mov.b -0x4(r4), r15
         ip = 0x453a
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, DoubleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.MOV)
@@ -204,7 +204,7 @@ class TestDoubleOperandDecode(unittest.TestCase):
         raw = b'\x81\x4f\x04\x00' # should be mov r15, 0x4(r1)
         ip = 0x4512
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, DoubleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.MOV)
@@ -222,7 +222,7 @@ class TestDoubleOperandDecode(unittest.TestCase):
         raw = b'\x9f\x4f\x86\x45\x00\x24' # should be mov 0x4586(r15), 0x2400(r15)
         ip = 0x441c
 
-        instruction, _ = decode_instruction(ip, raw)
+        instruction, _ = decode_instruction(ip, raw + b'\xFF\xFF\xFF')
         self.assertIsInstance(instruction, DoubleOperandInstruction)
         self.assertEqual(instruction.raw, list(raw))
         self.assertEqual(instruction.opcode, Opcode.MOV)

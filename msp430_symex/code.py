@@ -503,6 +503,6 @@ def decode_double_operand_instruction(address, data):
             get_operand(data, dest_addressing_mode, current_offset)
     current_offset += dest_size
 
-    return DoubleOperandInstruction(data[:2 + current_offset], address, opcode, \
+    return DoubleOperandInstruction(data[:current_offset], address, opcode, \
             width, source_addressing_mode, source_register, source_operand, \
             dest_addressing_mode, dest_register, dest_operand), current_offset
