@@ -270,9 +270,9 @@ class PathGroup:
             self.step()
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
             for state in self.active:
+                print('\t', state)
                 print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
                 print('\t\tOutput:', repr(state.sym_output.dump(state)))
-                #print('\t\tPred:', state.path.pred())
 
 
     def step_until_unlocked(self):
