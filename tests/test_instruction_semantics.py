@@ -38,8 +38,46 @@ class TestSwpbInstruction(unittest.TestCase):
 # TODO: Test these!!
 """
 RRA
-SXT
 """
+
+class TestSxtInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_sxt_positive(self):
+        # sxt r6
+        raw = b'\x86\x11'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R6'] = BitVecVal(0x007f, 16)
+
+        new_states = state.cpu.step_sxt(state, ins)
+        
+        self.assertEqual(len(new_states), 4)
+
+        for new_state in new_states:
+            # TODO: Check flags
+            self.assertEqual(intval(new_state.cpu.registers['R6']), 0x007f)
+
+    def test_instruction_semantics_sxt_negative(self):
+        # sxt r6
+        raw = b'\x86\x11'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R6'] = BitVecVal(0x008c, 16)
+
+        new_states = state.cpu.step_sxt(state, ins)
+        
+        self.assertEqual(len(new_states), 4)
+
+        for new_state in new_states:
+            # TODO: Check flags
+            self.assertEqual(intval(new_state.cpu.registers['R6']), 0xff8c)
+
 
 class TestPushInstruction(unittest.TestCase):
 

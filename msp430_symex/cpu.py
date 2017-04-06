@@ -283,7 +283,7 @@ class CPU:
 
     def set_single_operand_value(self, state, instruction, value):
         """
-        Get the operand value for a single-operand instruction
+        set the operand value for a single-operand instruction
 
         NOTE: not pure!!! may modify a register if the addressing mode is
         AUTOINCREMENT
@@ -593,10 +593,7 @@ class CPU:
 
         value = self.get_single_operand_value(st, instruction)
 
-        #sign = Extract(7, 7, value)
-        #base = Extract(7, 0, value)
-        #extended_sign = Concat(*[sign]*8) # XXX: maybe implement as an If instead?
-        #extended_num = Concat(extended_sign, base)
+        value = Extract(7, 0, value)
         extended_num = SignExt(8, value)
 
         # Flags:
@@ -634,6 +631,10 @@ class CPU:
         # all unset
         for st in new_states:
             st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
+
+        # set dest location
+        for st in new_states:
+            self.set_single_operand_value(st, instruction, extended_num)
 
         return new_states
 
