@@ -307,7 +307,6 @@ def start_path_group(memory_dump, start_ip, avoid=None):
     return pg
 
 def blank_state():
-    # TODO: initialize stuff to sane non-None values
     cpu = CPU()
     memory_data = [z3.BitVecVal(0, 8) for _ in range(0xFFFF)]
     memory = Memory(memory_data)
