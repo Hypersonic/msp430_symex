@@ -306,11 +306,15 @@ def start_path_group(memory_dump, start_ip, avoid=None):
     pg = PathGroup([entry_state], avoid=avoid)
     return pg
 
+# shared instance of the backing memory so we don't need to keep building this
+# make sure blank_state returns a clone of it's state so we don't accidentally
+# reuse this instance!!
+__memory_data = [z3.BitVecVal(0, 8) for _ in range(0xFFFF)]
 def blank_state():
     cpu = CPU()
-    memory_data = [z3.BitVecVal(0, 8) for _ in range(0xFFFF)]
-    memory = Memory(memory_data)
+    memory = Memory(__memory_data)
     path = Path()
     inp = IO([])
     out = IO([])
-    return State(cpu, memory, path, inp, out, False)
+    # return a clone because we cache __memory_data
+    return State(cpu, memory, path, inp, out, False).clone()
