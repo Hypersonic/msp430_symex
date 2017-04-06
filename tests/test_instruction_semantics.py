@@ -104,9 +104,36 @@ class TestPushInstruction(unittest.TestCase):
         self.assertEqual(intval(new_state.cpu.registers['R1']), 0x1232)
 
 
+class TestCallInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_call(self):
+        # call #0xdead
+        raw = b'\xb0\x12\xad\xde'
+        ip = 0xc0de
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(ip + len(raw), 16) # ip preincrement
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        new_states = state.cpu.step_call(state, ins)
+        
+        self.assertEqual(len(new_states), 1)
+
+        new_state = new_states[0]
+
+        lo = new_state.memory[0x1232]
+        hi = new_state.memory[0x1233]
+        pushed_val = Concat(hi, lo)
+
+        self.assertEqual(intval(pushed_val), ip + len(raw))
+        self.assertEqual(intval(new_state.cpu.registers['R1']), 0x1232)
+        self.assertEqual(intval(new_state.cpu.registers['R0']), 0xdead)
+
+
 # TODO: Test these!!
 """
-CALL
 RETI
 """
 
