@@ -1,6 +1,6 @@
 import unittest
 
-from z3 import simplify, BitVecVal
+from z3 import simplify, BitVecVal, Concat
 
 from msp430_symex.state import State, blank_state
 from msp430_symex.code import decode_instruction
@@ -39,7 +39,35 @@ class TestSwpbInstruction(unittest.TestCase):
 """
 RRA
 SXT
-PUSH
+"""
+
+class TestPushInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_push(self):
+        # push #0xdead
+        raw = b'\x30\x12\xad\xde'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        new_states = state.cpu.step_push(state, ins)
+        
+        self.assertEqual(len(new_states), 1)
+
+        new_state = new_states[0]
+        lo = new_state.memory[0x1232]
+        hi = new_state.memory[0x1233]
+        pushed_val = Concat(hi, lo)
+
+        self.assertEqual(intval(pushed_val), 0xdead)
+        self.assertEqual(intval(new_state.cpu.registers['R1']), 0x1232)
+
+
+# TODO: Test these!!
+"""
 CALL
 RETI
 """
