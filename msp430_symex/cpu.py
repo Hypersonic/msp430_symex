@@ -701,7 +701,16 @@ class CPU:
 
     def step_jnc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JNC
-        raise NotImplementedError('jnc instruction')
+        taken = state.clone()
+        not_taken = state.clone()
+        
+        not_taken.path.add(taken.cpu.registers[Register.R2] & BitVecVal(self.registers.mask_C, 16) == 0)
+        not_taken.cpu.registers[Register.R0] = instruction.target
+
+        taken.path.add(not_taken.cpu.registers[Register.R2] & BitVecVal(self.registers.mask_C, 16) == self.registers.mask_C)
+	# R0 is already pointing at the next instruction
+
+        return [taken, not_taken]
 
     def step_jc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JC

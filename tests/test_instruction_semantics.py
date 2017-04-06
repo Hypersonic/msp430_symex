@@ -95,10 +95,32 @@ class TestJzInstruction(unittest.TestCase):
         self.assertEqual(len(taken_states), 1)
         self.assertEqual(len(not_taken_states), 1)
 
-# TODO: Test these!!
-"""
-JNC
-"""
+
+class TestJncInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_jnc(self):
+        # jnc #0x45fa
+        raw = b'\x06\x28'
+        ip = 0x45ec
+
+        ins, ins_len = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+
+        expected_taken = 0x45fa
+        expected_not_taken = 0x45ee
+
+        new_states = state.cpu.step_jnc(state, ins)
+
+        self.assertEqual(len(new_states), 2)
+
+        taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_taken]
+        not_taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_not_taken]
+
+        self.assertEqual(len(taken_states), 1)
+        self.assertEqual(len(not_taken_states), 1)
+
 
 class TestJcInstruction(unittest.TestCase):
 
