@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from z3 import BitVecVal, Concat, Extract, And, Or, Not, simplify, If
+from z3 import BitVecVal, Concat, Extract, And, Or, Not, simplify, If, SignExt
 
 from .code import Register, Opcode, OperandWidth, AddressingMode, \
         SingleOperandInstruction, JumpInstruction, DoubleOperandInstruction, \
@@ -593,10 +593,11 @@ class CPU:
 
         value = self.get_single_operand_value(st, instruction)
 
-        sign = Extract(7, 7, value)
-        base = Extract(7, 0, value)
-        extended_sign = Concat(*[sign]*8) # XXX: maybe implement as an If instead?
-        extended_num = Concat(extended_sign, base)
+        #sign = Extract(7, 7, value)
+        #base = Extract(7, 0, value)
+        #extended_sign = Concat(*[sign]*8) # XXX: maybe implement as an If instead?
+        #extended_num = Concat(extended_sign, base)
+        extended_num = SignExt(8, value)
 
         # Flags:
         # N: Set if ext < 0, reset otherwise
