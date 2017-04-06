@@ -87,13 +87,14 @@ class State:
     Entire encapsulation of the current state of the machine (register, memory),
     plus all the interrupts (and their associated summary functions)
     """
-    def __init__(self, cpu, memory, path, sym_input, sym_output, unlocked):
+    def __init__(self, cpu, memory, path, sym_input, sym_output, unlocked, ticks=0):
         self.cpu = cpu
         self.memory = memory
         self.path = path
         self.sym_input = sym_input
         self.sym_output = sym_output
         self.unlocked = unlocked
+        self.ticks = ticks
 
     def step(self):
         """
@@ -146,7 +147,7 @@ class State:
         return successor_states
 
     def clone(self):
-         return self.__class__(self.cpu.clone(), self.memory.clone(), self.path.clone(), self.sym_input.clone(), self.sym_output.clone(), self.unlocked)
+         return self.__class__(self.cpu.clone(), self.memory.clone(), self.path.clone(), self.sym_input.clone(), self.sym_output.clone(), self.unlocked, self.ticks+1)
 
     def has_symbolic_ip(self):
         ip = self.cpu.registers[Register.R0]
@@ -241,20 +242,12 @@ class PathGroup:
         from that group
         """
         # TODO: more effective strategies?
-        # Perhaps prefer states which haven't been simulated in awhile?
-        # we'd rather not pick recently added sets (we want to get some diversity)
-        would_rather_not_select = self.recently_added
-        if self.active - would_rather_not_select:
-            # we have something we can choose that isn't in the recently
-            # added set
-            choice = random.choice(list(self.active - would_rather_not_select))
-            self.active.discard(choice)
-            return choice
+        if len(self.active) > 64:
+            choice = max(self.active, key=lambda st: st.ticks)
         else:
-            # we just have to pick anything off of the active set
-            choice = random.choice(list(self.active))
-            self.active.discard(choice)
-            return choice
+            choice = min(self.active, key=lambda st: st.ticks)
+        self.active.discard(choice)
+        return choice
 
     def step(self):
         path_to_sim = self.select_next_state()
@@ -265,28 +258,30 @@ class PathGroup:
 
         self.prune() # prune unsat successors
 
-    def step_until_symbolic_ip(self):
+    def step_until_symbolic_ip(self, debug_print=False):
         while self.active and not self.symbolic:
             self.step()
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
-            for state in self.active:
-                print('\t', state)
-                print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
-                print('\t\tOutput:', repr(state.sym_output.dump(state)))
+            if debug_print:
+                for state in self.active:
+                    print('\t', state)
+                    print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
+                    print('\t\tOutput:', repr(state.sym_output.dump(state)))
 
 
-    def step_until_unlocked(self):
+    def step_until_unlocked(self, debug_print=False):
         while self.active and not self.unlocked:
             self.step()
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
-            for state in self.active:
-                ip = state.cpu.registers['R0']
-                if z3.is_bv(ip):
-                    ip = z3.simplify(ip).as_long()
-                print('\t', state)
-                print('\t\tIP:', hex(ip))
-                print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
-                print('\t\tOutput:', repr(state.sym_output.dump(state)))
+            if debug_print:
+                for state in self.active:
+                    ip = state.cpu.registers['R0']
+                    if z3.is_bv(ip):
+                        ip = z3.simplify(ip).as_long()
+                    print('\t', state)
+                    print('\t\tIP:', hex(ip))
+                    print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
+                    print('\t\tOutput:', repr(state.sym_output.dump(state)))
 
 
 
