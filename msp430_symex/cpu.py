@@ -1117,7 +1117,6 @@ class CPU:
                 st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
             new_states = set_states + unset_states
 
-
         # C bit
         if 'C' in flags_needed:
             zero_bit = BitVecVal(0, 1)
