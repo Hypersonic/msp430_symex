@@ -147,7 +147,7 @@ class TestJnzInstruction(unittest.TestCase):
         ins, ins_len = decode_instruction(ip, raw)
 
         state = blank_state()
-        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+        state.cpu.registers['R0'] = BitVecVal(ip + ins_len, 16) # ip is always preincremented
 
         expected_taken = 0x1446
         expected_not_taken = 0x1236
@@ -173,7 +173,7 @@ class TestJzInstruction(unittest.TestCase):
         ins, ins_len = decode_instruction(ip, raw)
 
         state = blank_state()
-        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+        state.cpu.registers['R0'] = BitVecVal(ip + ins_len, 16) # ip is always preincremented
 
         expected_taken = 0x1446
         expected_not_taken = 0x1236
@@ -199,7 +199,7 @@ class TestJncInstruction(unittest.TestCase):
         ins, ins_len = decode_instruction(ip, raw)
 
         state = blank_state()
-        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+        state.cpu.registers['R0'] = BitVecVal(ip + ins_len, 16) # ip is always preincremented
 
         expected_taken = 0x45fa
         expected_not_taken = 0x45ee
@@ -225,7 +225,7 @@ class TestJcInstruction(unittest.TestCase):
         ins, ins_len = decode_instruction(ip, raw)
 
         state = blank_state()
-        state.cpu.registers['R0'] = ip + ins_len # ip is always preincremented
+        state.cpu.registers['R0'] = BitVecVal(ip + ins_len, 16) # ip is always preincremented
 
         expected_taken = 0x1446
         expected_not_taken = 0x1236
@@ -292,7 +292,49 @@ ADD
 ADDC
 SUBC
 SUB
-CMP
+"""
+
+class TestCmpInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_cmp_cflag_set(self):
+        # cmp.b #0x21, r15
+        raw = b'\x7f\x90\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x22, 16)
+
+        new_states = state.cpu.step_cmp(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertTrue(c_flag)
+
+    def test_instruction_semantics_cmp_cflag_unset(self):
+        # cmp.b #0x21, r15
+        raw = b'\x7f\x90\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x20, 16)
+
+        new_states = state.cpu.step_cmp(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertFalse(c_flag)
+
+
+# TODO: Test these!!
+"""
 DADD
 BIT
 """
