@@ -53,8 +53,10 @@ fff0:   7644 7644 7644 7644 7644 7644 7644 0044   vDvDvDvDvDvDvD.D"""
 
         unlocked_state = list(pg.unlocked)[0]
 
-        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+        winning_inputs = unlocked_state.sym_input.dump(unlocked_state)
+        self.assertEqual(len(winning_inputs), 1)
 
+        winning_input = winning_inputs[0].rstrip(b'\xc0')
         self.assertEqual(len(winning_input), 9)
 
 
@@ -112,8 +114,10 @@ fff0:   7a44 7a44 7a44 7a44 7a44 7a44 7a44 0044   zDzDzDzDzDzDzD.D"""
 
         unlocked_state = list(pg.unlocked)[0]
 
-        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+        winning_inputs = unlocked_state.sym_input.dump(unlocked_state)
+        self.assertEqual(len(winning_inputs), 1)
 
+        winning_input = winning_inputs[0].rstrip(b'\xc0')
         self.assertEqual(winning_input, b'3E0#*nv\x00')
 
 
@@ -169,8 +173,10 @@ fff0:   7c44 7c44 7c44 7c44 7c44 7c44 7c44 0044   |D|D|D|D|D|D|D.D"""
 
         unlocked_state = list(pg.unlocked)[0]
 
-        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
-
+        winning_inputs = unlocked_state.sym_input.dump(unlocked_state)
+        self.assertEqual(len(winning_inputs), 1)
+        
+        winning_input = winning_inputs[0].rstrip(b'\xc0')
         self.assertEqual(winning_input, b"%U@+DPo'")
 
 
@@ -230,7 +236,10 @@ fff0:   4444 4444 4444 4444 4444 4444 4444 0044   DDDDDDDDDDDDDD.D"""
 
         unlocked_state = list(pg.unlocked)[0]
 
-        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+        winning_inputs = unlocked_state.sym_input.dump(unlocked_state)
+        self.assertEqual(len(winning_inputs), 1)
+
+        winning_input = winning_inputs[0].rstrip(b'\xc0')
 
         # b'AAAAAAAAAAAAAAAA4' ('A's can be anything)
         self.assertEqual(len(winning_input), 17)
@@ -287,7 +296,11 @@ fff0:   5644 5644 5644 5644 5644 5644 5644 0044   VDVDVDVDVDVDVD.D"""
 
         pg.step_until_unlocked()
         unlocked_state = list(pg.unlocked)[0]
-        winning_input = unlocked_state.sym_input.dump(unlocked_state).rstrip(b'\xc0')
+
+        winning_inputs = unlocked_state.sym_input.dump(unlocked_state)
+        self.assertEqual(len(winning_inputs), 1)
+
+        winning_input = winning_inputs[0].rstrip(b'\xc0')
 
         self.assertEqual(winning_input, b'\xbd\xf3')
 

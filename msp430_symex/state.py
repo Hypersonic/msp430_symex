@@ -5,7 +5,7 @@ import z3
 from .code import decode_instruction, Opcode, AddressingMode, Register
 from .memory import Memory, parse_mc_memory_dump
 from .cpu import CPU
-from .symio import IO
+from .symio import IO, IOKind
 
 class Path:
     """
@@ -96,7 +96,7 @@ class State:
         self.unlocked = unlocked
         self.ticks = ticks
 
-    def step(self):
+    def step(self, enable_unsound_optimizations=True):
         """
         Tick the cpu forward one instruction.
 
@@ -143,7 +143,8 @@ class State:
         }
         self.cpu.registers[Register.R0] += instruction_length # preincrement ip
         instruction_fn = step_functions[instruction.opcode]
-        successor_states = instruction_fn(self, instruction)
+        successor_states = instruction_fn(self, instruction, \
+                enable_unsound_optimizations=enable_unsound_optimizations)
         return successor_states
 
     def clone(self):
@@ -249,29 +250,33 @@ class PathGroup:
         self.active.discard(choice)
         return choice
 
-    def step(self):
+    def step(self, enable_unsound_optimizations=True):
         path_to_sim = self.select_next_state()
-        successors = set(path_to_sim.step())
+        successors = set(path_to_sim.step(enable_unsound_optimizations=enable_unsound_optimizations))
         self.active.update(successors)
         self.recently_added = successors
         self.tick_count += 1
 
         self.prune() # prune unsat successors
 
-    def step_until_symbolic_ip(self, debug_print=False):
+    def step_until_symbolic_ip(self, enable_unsound_optimizations=True, debug_print=False):
         while self.active and not self.symbolic:
-            self.step()
+            self.step(enable_unsound_optimizations=enable_unsound_optimizations)
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
             if debug_print:
                 for state in self.active:
+                    ip = state.cpu.registers['R0']
+                    if z3.is_bv(ip):
+                        ip = z3.simplify(ip).as_long()
                     print('\t', state)
-                    print('\t\tInput:', repr(state.sym_input.dump(state).rstrip(b'\xc0')))
+                    print('\t\tIP:', hex(ip))
+                    print('\t\tInput:', [x.rstrip(b'\xc0') for x in state.sym_input.dump(state)])
                     print('\t\tOutput:', repr(state.sym_output.dump(state)))
 
 
-    def step_until_unlocked(self, debug_print=False):
+    def step_until_unlocked(self, enable_unsound_optimizations=True, debug_print=False):
         while self.active and not self.unlocked:
-            self.step()
+            self.step(enable_unsound_optimizations=enable_unsound_optimizations)
             print('==== Steps: {} == Active: {} == Unsat: {} ===='.format(self.tick_count, len(self.active), len(self.unsat)))
             if debug_print:
                 for state in self.active:
@@ -293,8 +298,8 @@ def start_path_group(memory_dump, start_ip, avoid=None):
     cpu = CPU()
     cpu.registers[Register.R0] = z3.BitVecVal(start_ip, 16)
     path = Path()
-    inp = IO([])
-    out = IO([])
+    inp = IO(IOKind.INPUT, [])
+    out = IO(IOKind.OUTPUT, [])
 
 
     entry_state = State(cpu, mem, path, inp, out, False)
@@ -309,7 +314,7 @@ def blank_state():
     cpu = CPU()
     memory = Memory(__memory_data)
     path = Path()
-    inp = IO([])
-    out = IO([])
+    inp = IO(IOKind.INPUT, [])
+    out = IO(IOKind.OUTPUT, [])
     # return a clone because we cache __memory_data
     return State(cpu, memory, path, inp, out, False).clone()
