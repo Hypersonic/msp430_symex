@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from z3 import BitVecVal, Concat, Extract, And, Or, Not, simplify, If, SignExt, ULT, UGT
+from z3 import BitVecVal, Concat, Extract, And, Or, Not, simplify, If, SignExt, Xor
 
 from .code import Register, Opcode, OperandWidth, AddressingMode, \
         SingleOperandInstruction, JumpInstruction, DoubleOperandInstruction, \
@@ -738,7 +738,21 @@ class CPU:
 
     def step_jl(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JL
-        raise NotImplementedError('jl instruction')
+        
+        r2 = state.cpu.registers[Register.R2]
+        n_flag = r2 & BitVecVal(self.registers.mask_N, 16) == self.registers.mask_N
+        v_flag = r2 & BitVecVal(self.registers.mask_V, 16) == self.registers.mask_V
+
+        taken = state.clone()
+        not_taken = state.clone()
+
+        taken.path.add(Xor(n_flag, v_flag))
+        taken.cpu.registers[Register.R0] = instruction.target
+
+        not_taken.path.add(Not(Xor(n_flag, v_flag)))
+	# R0 is already pointing at the next instruction
+
+        return [taken, not_taken]
 
     def step_jmp(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.JMP

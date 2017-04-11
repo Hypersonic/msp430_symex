@@ -245,8 +245,32 @@ class TestJcInstruction(unittest.TestCase):
 """
 JN
 JGE
-JL
 """
+
+class TestJlInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_jl(self):
+        # jl #0x124e
+        raw = b'\x0c\x38'
+        ip = 0x1234
+
+        ins, ins_len = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(ip + ins_len, 16) # ip is always preincremented
+
+        expected_taken = 0x124e
+        expected_not_taken = 0x1236
+
+        new_states = state.cpu.step_jl(state, ins)
+
+        self.assertEqual(len(new_states), 2)
+
+        taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_taken]
+        not_taken_states = [st for st in new_states if intval(st.cpu.registers['R0']) == expected_not_taken]
+
+        self.assertEqual(len(taken_states), 1)
+        self.assertEqual(len(not_taken_states), 1)
 
 class TestJmpInstruction(unittest.TestCase):
     
@@ -403,6 +427,8 @@ class TestCmpInstruction(unittest.TestCase):
             flag_reg = intval(st.cpu.registers['R2'])
             c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
             self.assertFalse(c_flag)
+
+    # TODO: V flag tests
 
 
 # TODO: Test these!!
