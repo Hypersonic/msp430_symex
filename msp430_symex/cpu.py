@@ -1154,14 +1154,14 @@ class CPU:
             unset_states = [x.clone() for x in new_states] # V bit cleared
             for st in set_states:
                 # following conditions above...
-                condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
-                condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+                condA = And(source_val < 0, dest_val > 0, dest_val - source_val < 0)
+                condB = And(source_val > 0, dest_val < 0, dest_val - source_val > 0)
                 st.path.add(Or(condA, condB))
                 st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_V, 16)
             for st in unset_states:
                 # following conditions above...
-                condA = And(source_val < 0, dest_val > 0, dest_val < source_val)
-                condB = And(source_val > 0, dest_val < 0, dest_val > source_val)
+                condA = And(source_val < 0, dest_val > 0, dest_val - source_val < 0)
+                condB = And(source_val > 0, dest_val < 0, dest_val - source_val > 0)
                 st.path.add(Not(Or(condA, condB)))
                 st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_V, 16)
             new_states = set_states + unset_states
