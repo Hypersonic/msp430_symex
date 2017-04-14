@@ -870,9 +870,11 @@ class CPU:
         # C bit
         # basically we check if the highest bit transitioned from a 1 to a 0
         if 'C' in flags_needed:
-            highest_bit = lambda x: Extract(x.size()-1, x.size()-1, x)
-            did_overflow = And(highest_bit(dest_val) == 1, \
-                               highest_bit(dest_val - source_val) == 0)
+            zero_bit = BitVecVal(0, 1)
+            src_ext = Concat(zero_bit, source_val)
+            dst_ext = Concat(zero_bit, dest_val)
+            did_overflow = Extract(src_ext.size()-1, src_ext.size()-1, src_ext + dst_ext) == 1
+
             set_states = [x for x in new_states] # C bit set
             unset_states = [x.clone() for x in new_states] # C bit cleared
             for st in set_states:
