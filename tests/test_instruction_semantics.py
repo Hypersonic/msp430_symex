@@ -434,7 +434,41 @@ class TestAddInstruction(unittest.TestCase):
             c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
             self.assertFalse(c_flag)
 
-    # TODO: V flag
+    def test_instruction_semantics_add_vflag_set(self):
+        # add #0x0123, r15
+        raw = b'\x3f\x50\x23\x01'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x7fff, 16)
+
+        new_states = state.cpu.step_add(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertTrue(v_flag)
+
+    def test_instruction_semantics_add_vflag_unset(self):
+        # add #0x0123, r15
+        raw = b'\x3f\x50\x23\x01'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0123, 16)
+
+        new_states = state.cpu.step_add(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertFalse(v_flag)
 
 
 # TODO: Test these!!
