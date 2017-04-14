@@ -651,7 +651,7 @@ class TestCmpInstruction(unittest.TestCase):
         state = blank_state()
         state.cpu.registers['R15'] = BitVecVal(0x20, 16)
 
-        new_states = state.cpu.sltep_cmp(state, ins, enable_unsound_optimizations=False)
+        new_states = state.cpu.step_cmp(state, ins, enable_unsound_optimizations=False)
         new_states = [st for st in new_states if st.path.is_sat()] # only sat states
 
         for st in new_states:
