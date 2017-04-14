@@ -475,8 +475,169 @@ class TestAddInstruction(unittest.TestCase):
 """
 ADDC
 SUBC
-SUB
 """
+
+class TestSubInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_sub(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x80, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+
+        for st in new_states:
+            self.assertEqual(intval(st.cpu.registers['R15']), 0x80 - 0x21)
+
+    def test_instruction_semantics_sub_nflag_set(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x20, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertTrue(n_flag)
+
+    def test_instruction_semantics_sub_nflag_unset(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x22, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertFalse(n_flag)
+
+    def test_instruction_semantics_sub_zflag_set(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x21, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertTrue(z_flag)
+
+    def test_instruction_semantics_sub_zflag_unset(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x20, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertFalse(z_flag)
+
+    def test_instruction_semantics_sub_cflag_set(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x22, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertTrue(c_flag)
+
+    def test_instruction_semantics_sub_cflag_unset(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x20, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertFalse(c_flag)
+
+    def test_instruction_semantics_sub_vflag_set(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x80, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertTrue(v_flag)
+
+    def test_instruction_semantics_sub_vflag_unset(self):
+        # sub.b #0x21, r15
+        raw = b'\x7f\x80\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x30, 16)
+
+        new_states = state.cpu.step_sub(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertFalse(v_flag)
+
 
 class TestCmpInstruction(unittest.TestCase):
 
@@ -490,7 +651,7 @@ class TestCmpInstruction(unittest.TestCase):
         state = blank_state()
         state.cpu.registers['R15'] = BitVecVal(0x20, 16)
 
-        new_states = state.cpu.step_cmp(state, ins, enable_unsound_optimizations=False)
+        new_states = state.cpu.sltep_cmp(state, ins, enable_unsound_optimizations=False)
         new_states = [st for st in new_states if st.path.is_sat()] # only sat states
 
         for st in new_states:
