@@ -73,7 +73,7 @@ int_rand
 
 class TestHSM1Interrupt(unittest.TestCase):
 
-    def test_hsm1_interrupt(self):
+    def test_interrupt_hsm1(self):
         """
         Because the HSM1 check can never pass, 
         this just calls the HSM1 interrupt to make sure it does not error,
@@ -87,7 +87,7 @@ class TestHSM1Interrupt(unittest.TestCase):
 
 class TestHSM2Interrupt(unittest.TestCase):
 
-    def test_hsm2_interrupt(self):
+    def test_interrupt_hsm2(self):
         """
         Because the HSM2 check can never pass, 
         this just calls the HSM2 interrupt to make sure it does not error,
