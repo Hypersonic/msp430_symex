@@ -831,9 +831,170 @@ class TestBisInstruction(unittest.TestCase):
         self.assertEqual(intval(new_state.cpu.registers['R6']), 0xdfaf)
         
 
+class TestXorInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_xor(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0xc0de, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+
+        for st in new_states:
+            self.assertEqual(intval(st.cpu.registers['R15']), 0xc0de ^ 0x0021)
+
+    def test_instruction_semantics_xor_nflag_set(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x8000, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertTrue(n_flag)
+
+    def test_instruction_semantics_xor_nflag_unset(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x7fff, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertFalse(n_flag)
+
+    def test_instruction_semantics_xor_zflag_set(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0021, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertTrue(z_flag)
+
+    def test_instruction_semantics_xor_zflag_unset(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0xc0de, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertFalse(z_flag)
+
+    def test_instruction_semantics_xor_cflag_set(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0xc0de, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertTrue(c_flag)
+
+    def test_instruction_semantics_xor_cflag_unset(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0021, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertFalse(c_flag)
+
+    def test_instruction_semantics_xor_vflag_set(self):
+        # xor #0x8000, r15
+        raw = b'\x3f\xe0\x00\x80'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0xffff, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertTrue(v_flag)
+
+    def test_instruction_semantics_xor_vflag_unset(self):
+        # xor #0x21, r15
+        raw = b'\x3f\xe0\x21\x00'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0021, 16)
+
+        new_states = state.cpu.step_xor(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertFalse(v_flag)
+
+
 # TODO: Test these!!
 """
-XOR
 AND
 """
 
