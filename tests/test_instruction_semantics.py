@@ -789,7 +789,6 @@ class TestCmpInstruction(unittest.TestCase):
 # TODO: Test these!!
 """
 DADD
-BIT
 """
 
 class TestBitInstruction(unittest.TestCase):
@@ -919,7 +918,6 @@ class TestBitInstruction(unittest.TestCase):
             flag_reg = intval(st.cpu.registers['R2'])
             v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
             self.assertFalse(v_flag)
-
 
 
 class TestBicInstruction(unittest.TestCase):
