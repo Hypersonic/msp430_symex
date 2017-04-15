@@ -792,6 +792,136 @@ DADD
 BIT
 """
 
+class TestBitInstruction(unittest.TestCase):
+
+    def test_instruction_semantics_bit_nflag_set(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x8000, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertTrue(n_flag)
+
+    def test_instruction_semantics_bit_nflag_unset(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x7fff, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            n_flag = (flag_reg & st.cpu.registers.mask_N) != 0
+            self.assertFalse(n_flag)
+
+    def test_instruction_semantics_bit_zflag_set(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0001, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertTrue(z_flag)
+
+    def test_instruction_semantics_bit_zflag_unset(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x8000, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            z_flag = (flag_reg & st.cpu.registers.mask_Z) != 0
+            self.assertFalse(z_flag)
+
+    def test_instruction_semantics_bit_cflag_set(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x8000, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertTrue(c_flag)
+
+    def test_instruction_semantics_bit_cflag_unset(self):
+        # bit #0xff00, r15
+        raw = b'\x3f\xb0\x00\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x0001, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            c_flag = (flag_reg & st.cpu.registers.mask_C) != 0
+            self.assertFalse(c_flag)
+
+    def test_instruction_semantics_bit_vflag_unset(self):
+        # bit #0xffff, r15
+        raw = b'\x3f\xb0\xff\xff'
+        ip = 0x1234
+
+        ins, _ = decode_instruction(ip, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0xffff, 16)
+
+        new_states = state.cpu.step_bit(state, ins, enable_unsound_optimizations=False)
+        new_states = [st for st in new_states if st.path.is_sat()] # only sat states
+
+        for st in new_states:
+            flag_reg = intval(st.cpu.registers['R2'])
+            v_flag = (flag_reg & st.cpu.registers.mask_V) != 0
+            self.assertFalse(v_flag)
+
+
+
 class TestBicInstruction(unittest.TestCase):
 
     def test_instruction_semantics_bic(self):

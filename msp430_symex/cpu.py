@@ -1252,10 +1252,10 @@ class CPU:
             unset_states = [x.clone() for x in new_states]
             for st in set_states:
                 st.path.add((source_val & dest_val) != 0)
-                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_Z, 16)
+                st.cpu.registers[Register.R2] |= BitVecVal(self.registers.mask_C, 16)
             for st in unset_states:
                 st.path.add((source_val & dest_val) == 0)
-                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_Z, 16)
+                st.cpu.registers[Register.R2] &= ~BitVecVal(self.registers.mask_C, 16)
             new_states = set_states + unset_states
 
         # V flag (always set)
