@@ -309,6 +309,7 @@ class TestMovInstruction(unittest.TestCase):
         new_state = new_states[0]
         self.assertEqual(intval(new_state.cpu.registers['R6']), 0xdead)
 
+
 class TestAddInstruction(unittest.TestCase):
 
     def test_instruction_semantics_add(self):
