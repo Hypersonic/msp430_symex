@@ -206,20 +206,6 @@ class PathGroup:
         unsat_states = set()
         for state in self.active:
 
-            # make states at an avoid_addr unsat
-            # TODO: maybe check recent states?
-            if self.avoid:
-                def simplify(v):
-                    if z3.is_bv(v):
-                        v = z3.simplify(v).as_long()
-                    return v
-                try:
-                    ip = simplify(state.cpu.registers[Register.R0])
-                    if ip in self.avoid:
-                        state.path.make_unsat()
-                except AttributeError:
-                    pass # symbolic ip!! Ignore for now...
-
             if state.path.is_sat():
                 if state.has_symbolic_ip():
                     symbolic_states.add(state)
@@ -256,6 +242,22 @@ class PathGroup:
         self.active.update(successors)
         self.recently_added = successors
         self.tick_count += 1
+
+        for state in successors:
+            # make states at an avoid_addr unsat
+            # TODO: maybe check recent states?
+            if self.avoid:
+                def simplify(v):
+                    if z3.is_bv(v):
+                        v = z3.simplify(v).as_long()
+                    return v
+                try:
+                    ip = simplify(state.cpu.registers[Register.R0])
+                    if ip in self.avoid:
+                        state.path.make_unsat()
+                except AttributeError:
+                    pass # symbolic ip!! Ignore for now...
+
 
         self.prune() # prune unsat successors
 
