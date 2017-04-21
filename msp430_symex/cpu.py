@@ -564,7 +564,27 @@ class CPU:
 
     def step_rrc(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.RRC
-        raise NotImplementedError('rrc instruction')
+
+        st = state.clone()
+
+        # TODO: Flags!!
+        value = self.get_single_operand_value(st, instruction)
+
+        c_flag = If(st.cpu.registers[Register.R2] & self.registers.mask_C == 0, \
+                BitVecVal(0, 1), BitVecVal(1, 1))
+
+        new_c_flag = Extract(0, 0, value)
+        new_value = Extract(value.size()-1, 0, Concat(c_flag, value) >> 1)
+
+        # set the C flag
+        c_on = st.cpu.registers[Register.R2] | BitVecVal(self.registers.mask_C, 16)
+        c_off = st.cpu.registers[Register.R2] & ~BitVecVal(self.registers.mask_C, 16)
+        st.cpu.registers[Register.R2] = If(new_c_flag != 0, c_on, c_off)
+
+        # set the value
+        self.set_single_operand_value(st, instruction, new_value)
+
+        return [st]
 
     def step_swpb(self, state, instruction, enable_unsound_optimizations=True):
         assert instruction.opcode == Opcode.SWPB
