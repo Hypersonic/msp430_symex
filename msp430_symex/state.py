@@ -24,6 +24,7 @@ class Path:
             self._path = paths
         self.__needs_copying = False
         self.model = None
+        self._model_cache = {}
         self.sat = None # unknown
 
     def add(self, condition):
@@ -61,12 +62,19 @@ class Path:
         # if we've cached whether we're sat, just return that
         if self.sat is not None:
             return self.sat
+        # if we're in the global cache, use that
+        if self.pred() in self._model_cache:
+            self.sat, self.model = self._model_cache[self.pred()]
+            return self.sat
         solver = z3.Solver()
         solver.add(self.pred())
         is_sat = solver.check() == z3.sat
         self.sat = is_sat
         if is_sat:
             self.model = solver.model()
+
+        # Save sat results back to global cache
+        self._model_cache[self.pred()] = (self.sat, self.model)
 
         return is_sat
 
@@ -77,6 +85,8 @@ class Path:
         # pass along our model so sat checks quick-exit as long as nothing is added
         new_path.model = self.model
         new_path.sat = self.sat
+
+        new_path._model_cache = self._model_cache # NOT A COPY -- GLOBAL CACHE
         return new_path
 
     def __repr__(self):
