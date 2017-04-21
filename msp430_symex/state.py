@@ -67,6 +67,7 @@ class Path:
         self.sat = is_sat
         if is_sat:
             self.model = solver.model()
+
         return is_sat
 
     def clone(self):
@@ -257,7 +258,6 @@ class PathGroup:
                         state.path.make_unsat()
                 except AttributeError:
                     pass # symbolic ip!! Ignore for now...
-
 
         self.prune() # prune unsat successors
 
