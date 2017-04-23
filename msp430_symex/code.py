@@ -169,7 +169,10 @@ class DoubleOperandInstruction:
 
 def decode_instruction(address, data):
     """
-    data is a 24-bit- or 32-bit-long integer
+    data is the raw bytes, in little-endian, of at least the area containing
+    all information about the current instruction.
+    You can give more, but you need at least enough to fully decode the
+    instruction, so 6 bytes should be enough.
 
 
     Reference: http://mspgcc.sourceforge.net/manual/x223.html
@@ -205,6 +208,7 @@ def decode_single_operand_instruction(address, data):
     all information about the current instruction.
     You can give more, but you need at least enough to fully decode the
     instruction, so 6 bytes should be enough.
+
     top 6 bits are 000100
     """
 
@@ -361,8 +365,10 @@ def decode_jump_instruction(address, data):
 
 def decode_double_operand_instruction(address, data):
     """
-    instruction is a 16-bit integer
-    argument is an 8- or 16-bit integer, depending on whether the width flag is 0 or 1, respectively
+    data is the raw bytes, in little-endian, of at least the area containing
+    all information about the current instruction.
+    You can give more, but you need at least enough to fully decode the
+    instruction, so 6 bytes should be enough.
     """
     instruction = int.from_bytes(data[:2], 'little') # decode instruction
 
