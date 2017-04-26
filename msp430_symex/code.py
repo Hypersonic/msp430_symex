@@ -390,7 +390,7 @@ def decode_double_operand_instruction(address, data):
     }
     def get_opcode(instruction):
         raw = (instruction >> 12) & 0b1111
-        assert raw in opcodes, 'Invalid opcode for double-operand instruction: {} @ {}'.format(raw, address)
+        assert raw in opcodes, 'Invalid opcode for double-operand instruction: {} @ {} (full: {})'.format(raw, address, data)
         return opcodes[raw]
 
     registers = {
