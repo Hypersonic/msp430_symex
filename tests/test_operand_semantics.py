@@ -1012,6 +1012,20 @@ class TestGetDoubleOperandDestLocation(unittest.TestCase):
         self.assertEqual(dest, 0x2400 + 0x1234)
         self.assertEqual(dest_type, DestinationType.ADDRESS)
 
+    def test_double_operand_dest_indexed_unaligned(self):
+        # mov r1, 0x2400(r15)
+        raw = b'\x8f\x41\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0x1235, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+
+        self.assertFalse(state.path.is_sat())
+
     def test_double_operand_dest_symbolic(self):
         # mov r1, 0x2400
         raw = b'\x80\x41\xfe\x23'
@@ -1028,6 +1042,20 @@ class TestGetDoubleOperandDestLocation(unittest.TestCase):
         self.assertEqual(dest, 0x2400 + 0x1234 - 2)
         self.assertEqual(dest_type, DestinationType.ADDRESS)
 
+    def test_double_operand_dest_symbolic_unaligned(self):
+        # mov r1, 0x2400
+        raw = b'\x80\x41\xfe\x23'
+        addr = BitVecVal(0x1234, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(0x1235, 16)
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+
+        self.assertFalse(state.path.is_sat())
+
     def test_double_operand_dest_absolute(self):
         # mov r1, &0x2400
         raw = b'\x82\x41\x00\x24'
@@ -1042,6 +1070,19 @@ class TestGetDoubleOperandDestLocation(unittest.TestCase):
 
         self.assertEqual(dest, 0x2400)
         self.assertEqual(dest_type, DestinationType.ADDRESS)
+
+    def test_double_operand_dest_absolute_unaligned(self):
+        # mov r1, &0x2401
+        raw = b'\x82\x41\x01\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        dest, dest_type = state.cpu.get_double_operand_dest_location(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
 
 if __name__ == '__main__':
