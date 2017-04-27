@@ -541,6 +541,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_double_operand_source_indexed_unaligned(self):
+        # mov 0x2400(r15), r1
+        raw = b'\x11\x4f\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeed, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
+
     def test_double_operand_source_indexed_byte(self):
         # mov.b 0x2400(r15), r1
         raw = b'\x51\x4f\x00\x24'
@@ -577,6 +591,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_long()
 
         self.assertEqual(operand, 0xdead)
+
+    def test_double_operand_source_indirect_unaligned(self):
+        # mov @r15, r1
+        raw = b'\x21\x4f'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeed, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
     def test_double_operand_source_indirect_byte(self):
         # mov.b @r15, r1
@@ -619,6 +647,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         self.assertEqual(operand, 0xdead)
         self.assertEqual(new_reg, 0xbef1)
 
+    def test_double_operand_source_autoincrement_unaligned(self):
+        # mov @r15+, r1
+        raw = b'\x31\x4f'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+        state.cpu.registers['R15'] = BitVecVal(0xbeed, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
+
     def test_double_operand_source_autoincrement_byte(self):
         # mov.b @r15+, r1
         raw = b'\x71\x4f'
@@ -659,6 +701,20 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_long()
 
         self.assertEqual(operand, 0xdead)
+
+    def test_double_operand_source_symbolic_unaligned(self):
+        # mov 0x2400, r1
+        raw = b'\x11\x40\xfe\x23'
+        addr = BitVecVal(0xc0de, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = BitVecVal(0xc0dd, 16)
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
     def test_double_operand_source_symbolic_byte(self):
         # mov.b 0x2400, r1
@@ -723,6 +779,19 @@ class TestGetDoubleOperandSourceValue(unittest.TestCase):
         operand = simplify(operand).as_long()
 
         self.assertEqual(operand, 0xdead)
+
+    def test_double_operand_source_absolute_unaligned(self):
+        # mov &2401, r1
+        raw = b'\x11\x42\x01\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R1'] = BitVecVal(0x1234, 16)
+
+        operand = state.cpu.get_double_operand_source_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
     def test_double_operand_source_absolute_byte(self):
         # mov.b &2400, r1
