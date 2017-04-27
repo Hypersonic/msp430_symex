@@ -59,6 +59,21 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_single_operand_indexed_unaligned(self):
+        """
+        Unaligned memory dereferences should cause the state to become unsat
+        """
+        # push 0x2400(r15)
+        raw = b'\x1f\x12\x00\x24'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1235, 16) # put known val into R15
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+        self.assertFalse(state.path.is_sat())
+
     def test_single_operand_indexed_byte(self):
         # rra.b 0x2400(r15)
         raw = b'\x5f\x11\x00\x24'
@@ -94,6 +109,22 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
 
+    def test_single_operand_indirect_unaligned(self):
+        """
+        Unaligned memory dereferences should cause the state to become unsat
+        """
+        # push @r15
+        raw = b'\x2f\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1235, 16) # put known val into R15
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
+
     def test_single_operand_indirect_byte(self):
         # rra.b @r15
         raw = b'\x6f\x11'
@@ -110,7 +141,6 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = simplify(operand).as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0xc0)
-
 
     def test_single_operand_autoincrement(self):
         # push @r15+
@@ -133,6 +163,22 @@ class TestGetSingleOperandValue(unittest.TestCase):
 
         self.assertEqual(operand, 0xdead)
         self.assertEqual(new_reg, 0x1236)
+
+    def test_single_operand_autoincrement_unaligned(self):
+        """
+        Unaligned memory dereferences should cause the state to become unsat
+        """
+        # push @r15+
+        raw = b'\x3f\x12'
+        addr = BitVecVal(0x0, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R15'] = BitVecVal(0x1235, 16) # put known val into R15
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
     def test_single_operand_autoincrement_byte(self):
         # rra.b @r15+
@@ -174,6 +220,20 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = simplify(operand).as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0xdead)
+
+    def test_single_operand_symbolic_unaligned(self):
+        # call 0x1235
+        # (or call 0x1235(r0))
+        raw = b'\x90\x12\x33\x12'
+        addr = BitVecVal(0xc0de, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        state = blank_state()
+        state.cpu.registers['R0'] = addr
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
         
     def test_single_operand_symbolic_byte(self):
         # rra.b 0x1234
@@ -240,6 +300,19 @@ class TestGetSingleOperandValue(unittest.TestCase):
         operand = simplify(operand).as_long() # unwrap Z3 value
 
         self.assertEqual(operand, 0xdead)
+
+    def test_single_operand_absolute_unaligned(self):
+        # call &0x1235
+        raw = b'\x92\x12\x35\x12'
+        addr = BitVecVal(0xc0de, 16)
+        ins, _ = decode_instruction(addr, raw)
+
+        stored_addr = 0x1234
+        state = blank_state()
+
+        operand = state.cpu.get_single_operand_value(state, ins)
+
+        self.assertFalse(state.path.is_sat())
 
     def test_single_operand_absolute_byte(self):
         # rra.b &0x1234
