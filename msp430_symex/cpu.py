@@ -179,7 +179,7 @@ class CPU:
             address = state.cpu.registers[instruction.register] + \
                     instruction.operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 val = \
                         Concat(state.memory[address + 1], \
@@ -191,7 +191,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.INDIRECT:
             address = state.cpu.registers[instruction.register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 val = \
                         Concat(state.memory[address + 1], \
@@ -203,7 +203,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.AUTOINCREMENT:
             address = state.cpu.registers[instruction.register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 val = \
                         Concat(state.memory[address + 1], \
@@ -218,7 +218,7 @@ class CPU:
             address = \
                     instruction.operand + state.cpu.registers[Register.R0]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 val = \
                         Concat(state.memory[address + 1], \
@@ -238,7 +238,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.ABSOLUTE:
             address = instruction.operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 val = \
                         Concat(state.memory[address + 1], \
@@ -319,7 +319,7 @@ class CPU:
             address = state.cpu.registers[instruction.register] + \
                     instruction.operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 high = Extract(15, 7, value)
                 low = Extract(7, 0, value)
@@ -332,7 +332,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.INDIRECT:
             address = state.cpu.registers[instruction.register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 high = Extract(15, 7, value)
                 low = Extract(7, 0, value)
@@ -345,7 +345,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.AUTOINCREMENT:
             address = state.cpu.registers[instruction.register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 high = Extract(15, 7, value)
                 low = Extract(7, 0, value)
@@ -359,7 +359,7 @@ class CPU:
             address = \
                     instruction.operand + state.cpu.registers[Register.R0]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 high = Extract(15, 7, value)
                 low = Extract(7, 0, value)
@@ -375,7 +375,7 @@ class CPU:
         elif instruction.addressing_mode == AddressingMode.ABSOLUTE:
             address = instruction.operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(address % 2 == 0)
+                state.path.add(Extract(0, 0, address) == 0)
 
                 high = Extract(15, 7, value)
                 low = Extract(7, 0, value)
@@ -454,7 +454,7 @@ class CPU:
             source_address = state.cpu.registers[instruction.source_register] + \
                     instruction.source_operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(source_address % 2 == 0)
+                state.path.add(Extract(0, 0, source_address) == 0)
 
                 source_val = \
                         Concat(state.memory[source_address + 1], \
@@ -466,7 +466,7 @@ class CPU:
         elif instruction.source_addressing_mode == AddressingMode.INDIRECT:
             source_address = state.cpu.registers[instruction.source_register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(source_address % 2 == 0)
+                state.path.add(Extract(0, 0, source_address) == 0)
 
                 source_val = \
                         Concat(state.memory[source_address + 1], \
@@ -478,7 +478,7 @@ class CPU:
         elif instruction.source_addressing_mode == AddressingMode.AUTOINCREMENT:
             source_address = state.cpu.registers[instruction.source_register]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(source_address % 2 == 0)
+                state.path.add(Extract(0, 0, source_address) == 0)
 
                 source_val = \
                         Concat(state.memory[source_address + 1], \
@@ -493,7 +493,7 @@ class CPU:
             source_address = \
                     instruction.source_operand + state.cpu.registers[Register.R0]
             if instruction.width == OperandWidth.WORD:
-                state.path.add(source_address % 2 == 0)
+                state.path.add(Extract(0, 0, source_address) == 0)
 
                 source_val = \
                         Concat(state.memory[source_address + 1], \
@@ -513,7 +513,7 @@ class CPU:
         elif instruction.source_addressing_mode == AddressingMode.ABSOLUTE:
             source_address = instruction.source_operand
             if instruction.width == OperandWidth.WORD:
-                state.path.add(source_address % 2 == 0)
+                state.path.add(Extract(0, 0, source_address) == 0)
 
                 source_val = \
                         Concat(state.memory[source_address + 1], \
@@ -591,7 +591,7 @@ class CPU:
             dest_type = DestinationType.ADDRESS
 
         if dest_type == DestinationType.ADDRESS and instruction.width == OperandWidth.WORD:
-            state.path.add(dest_loc % 2 == 0)
+            state.path.add(Extract(0, 0, dest_loc) == 0)
 
         return dest_loc, dest_type
 
